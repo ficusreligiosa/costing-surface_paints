@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases
+*.db
+*.sqlite
+
+# Excel / Local files
+*.xlsx
+*.xls
+*.csv
+
+# Environment files
+.env
+.venv/
+venv/
+ENV/
+
+# Scratch & IDE
+scratch/
+.agents/
+.gemini/
+.idea/
+.vscode/

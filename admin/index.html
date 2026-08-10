@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surface Paints — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F6F2;
+  --surface:#FFFFFF;
+  --sidebar:#16211C;
+  --sidebar-hover:#20302A;
+  --ink:#1E2A24;
+  --muted:#6E7C73;
+  --border:#E3E6DF;
+  --accent:#3D7A63;
+  --accent-dark:#2C5C49;
+  --accent-light:#E8F2ED;
+  --warn:#B8703A;
+  --warn-light:#FBF0E6;
+  --danger:#A8402C;
+  --danger-light:#FBEAE6;
+  --radius:12px;
+  --shadow:0 1px 3px rgba(20,30,25,0.06), 0 1px 2px rgba(20,30,25,0.04);
+  --shadow-md:0 8px 24px rgba(20,30,25,0.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+code,.mono{font-family:'JetBrains Mono',monospace;}
+
+/* ---------- LOGIN ---------- */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(circle at 20% 20%, #1c2e26 0%, #0F1712 65%);}
+.login-box{background:var(--surface);border-radius:20px;padding:40px 38px;width:380px;box-shadow:0 30px 70px rgba(0,0,0,0.35);}
+.login-box .swatch-row{display:flex;gap:6px;margin-bottom:22px;}
+.login-box .swatch{width:22px;height:22px;border-radius:6px;}
+.login-box h1{font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:4px;}
+.login-box p{font-size:13px;color:var(--muted);margin-bottom:26px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:14px;color:var(--ink);outline:none;transition:border-color .15s;background:#FCFDFB;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);background:#fff;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;border-radius:9px;border:none;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent-dark);}
+.btn-primary:disabled{opacity:0.6;cursor:default;}
+.btn-full{width:100%;padding:12px;}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border);}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink);}
+.btn-danger{background:var(--danger-light);color:var(--danger);border:1.5px solid #EBC2B8;}
+.btn-danger:hover{background:#F5D9D1;}
+.btn-sm{padding:7px 12px;font-size:12.5px;}
+.login-error{background:var(--danger-light);color:var(--danger);border:1px solid #EBC2B8;border-radius:9px;padding:9px 13px;font-size:12.5px;margin-bottom:14px;display:none;}
+
+/* ---------- APP SHELL ---------- */
+#app{display:none;min-height:100vh;}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:230px;background:var(--sidebar);color:#EDF2EE;display:flex;flex-direction:column;}
+.sidebar-header{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.sidebar-header .swatch-row{display:flex;gap:5px;margin-bottom:12px;}
+.sidebar-header .swatch{width:16px;height:16px;border-radius:4px;}
+.sidebar-header h1{font-size:15px;font-weight:800;letter-spacing:-0.2px;line-height:1.3;}
+.sidebar-header p{font-size:11px;color:#9FB0A6;margin-top:2px;}
+.sidebar-nav{flex:1;padding:14px 10px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:13.5px;font-weight:600;color:#C9D6CE;margin-bottom:2px;transition:all .15s;}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff;}
+.nav-item.active{background:var(--accent);color:#fff;}
+.nav-item svg{flex-shrink:0;opacity:0.9;}
+.sidebar-footer{padding:14px;border-top:1px solid rgba(255,255,255,0.08);}
+.sidebar-user{font-size:12.5px;color:#C9D6CE;margin-bottom:10px;}
+.sidebar-user strong{display:block;color:#fff;font-size:13.5px;}
+.main{margin-left:230px;padding:30px 36px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;}
+.topbar h2{font-size:22px;font-weight:800;letter-spacing:-0.4px;}
+.topbar p{font-size:13px;color:var(--muted);margin-top:3px;}
+
+/* ---------- TABLE ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.card-toolbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap;}
+.search-input{padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;min-width:220px;outline:none;}
+.search-input:focus{border-color:var(--accent);}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);padding:10px 20px;border-bottom:1.5px solid var(--border);background:#FAFBF9;}
+td{padding:12px 20px;font-size:13.5px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr.status-row{border-left:3px solid transparent;}
+tr.status-low{border-left-color:var(--warn);}
+tr.status-out{border-left-color:var(--danger);}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.pill-ok{background:var(--accent-light);color:var(--accent-dark);}
+.pill-warn{background:var(--warn-light);color:var(--warn);}
+.pill-danger{background:var(--danger-light);color:var(--danger);}
+.swatch-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;}
+.row-actions{display:flex;gap:6px;}
+.empty-state{padding:60px 20px;text-align:center;color:var(--muted);}
+.empty-state svg{opacity:0.35;margin-bottom:12px;}
+.empty-state p{font-size:13.5px;}
+
+/* ---------- DRAWER ---------- */
+#drawer-overlay{position:fixed;inset:0;background:rgba(15,23,18,0.4);z-index:200;display:none;align-items:stretch;justify-content:flex-end;}
+#drawer{width:420px;max-width:92vw;background:var(--surface);height:100vh;overflow-y:auto;box-shadow:-16px 0 40px rgba(0,0,0,0.15);animation:slideIn .22s ease;}
+@keyframes slideIn{from{transform:translateX(24px);opacity:0.5;}to{transform:translateX(0);opacity:1;}}
+.drawer-header{padding:22px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.drawer-header h3{font-size:17px;font-weight:800;}
+.drawer-close{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;line-height:1;padding:4px;}
+.drawer-body{padding:22px 26px;}
+.drawer-footer{padding:18px 26px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;background:#FAFBF9;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-hint{font-size:11.5px;color:var(--muted);margin-top:5px;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#FAFBF9;border:1px solid var(--border);border-radius:10px;margin-bottom:14px;}
+.toggle-row .label{font-size:13.5px;font-weight:700;}
+.toggle-row .sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.switch{width:44px;height:24px;border-radius:20px;background:var(--border);position:relative;cursor:pointer;transition:background .15s;flex-shrink:0;}
+.switch.on{background:var(--accent);}
+.switch .knob{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,0.25);}
+.switch.on .knob{left:23px;}
+
+/* ---------- TOAST ---------- */
+#toast-box{position:fixed;bottom:22px;right:22px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--ink);color:#fff;padding:12px 18px;border-radius:9px;font-size:13px;font-weight:600;box-shadow:var(--shadow-md);animation:toastIn .2s ease;min-width:220px;}
+.toast.err{background:var(--danger);}
+.toast.ok{background:var(--accent-dark);}
+@keyframes toastIn{from{transform:translateY(10px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+.loading{text-align:center;padding:50px;color:var(--muted);font-size:13.5px;}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="swatch-row">
+      <div class="swatch" style="background:#3D7A63"></div>
+      <div class="swatch" style="background:#B8703A"></div>
+      <div class="swatch" style="background:#A8402C"></div>
+      <div class="swatch" style="background:#16211C"></div>
+    </div>
+    <h1>Surface Paints — Admin Panel</h1>
+    <p>Manage raw materials, users, machines and settings.</p>
+    <div class="login-error" id="login-error"></div>
+    <div class="field">
+      <label>Username</label>
+      <input id="li-user" type="text" placeholder="Enter username" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="li-pass" type="password" placeholder="Enter password" autocomplete="current-password">
+    </div>
+    <div class="field">
+      <label>Server Address</label>
+      <input id="li-server" type="text" placeholder="https://your-server-address/api">
+      <div class="form-hint">Saved on this device — only needed the first time.</div>
+    </div>
+    <button class="btn btn-primary btn-full" id="li-btn" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="swatch-row">
+        <div class="swatch" style="background:#3D7A63"></div>
+        <div class="swatch" style="background:#B8703A"></div>
+        <div class="swatch" style="background:#A8402C"></div>
+      </div>
+      <h1>Surface Paints</h1>
+      <p>Admin Panel</p>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav"></div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><strong id="sb-name">—</strong><span id="sb-role">—</span></div>
+      <button class="btn btn-ghost btn-full btn-sm" onclick="logout()" style="color:#C9D6CE;border-color:rgba(255,255,255,0.15);">Sign Out</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h2 id="page-title">Raw Materials</h2>
+        <p id="page-sub">Material master — prices, suppliers, stock thresholds</p>
+      </div>
+      <button class="btn btn-primary" id="add-btn" onclick="openAddDrawer()">+ Add New</button>
+    </div>
+    <div id="page-content"></div>
+  </div>
+</div>
+
+<div id="drawer-overlay" onclick="if(event.target===this)closeDrawer()">
+  <div id="drawer"></div>
+</div>
+
+<div id="toast-box"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let API_BASE = localStorage.getItem('sp_admin_server') || 
+               ((window.location.origin && window.location.origin.startsWith('http')) ? window.location.origin + '/api' : '');
+let TOKEN = localStorage.getItem('sp_admin_token') || '';
+let CURRENT_USER = JSON.parse(localStorage.getItem('sp_admin_user') || 'null');
+let DATA = null;
+let activeTab = 'rawmaterials';
+
+const TABS = [
+  {id:'rawmaterials', label:'Raw Materials', icon:'flask'},
+  {id:'users', label:'Users', icon:'users'},
+  {id:'machines', label:'Machines', icon:'cog'},
+  {id:'shifts', label:'Shifts', icon:'clock'},
+  {id:'settings', label:'Settings', icon:'sliders'},
+];
+
+const ICONS = {
+  flask:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6v5l5 9a2 2 0 0 1-1.8 3H5.8A2 2 0 0 1 4 17l5-9V3z"/><path d="M9 3h6"/></svg>',
+  users:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  cog:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>',
+  clock:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  sliders:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>',
+};
+
+const CATEGORY_COLORS = {Binder:'#2563EB',Pigment:'#C2418E',Hardener:'#3D7A63',Filler:'#B8703A',Additive:'#7C3AED',Other:'#6E7C73'};
+
+function toast(msg, type){
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type||'');
+  el.textContent = msg;
+  document.getElementById('toast-box').appendChild(el);
+  setTimeout(()=>el.remove(), 3200);
+}
+
+// ══════════════════════════════════════════════════════
+//  API HELPER — mirrors the main app's gasCall() shape
+// ══════════════════════════════════════════════════════
+async function apiCall(action, payload){
+  payload = payload || {};
+  const body = JSON.stringify({action, token: TOKEN, ...payload});
+  const isRead = action === 'loadAll';
+  const url = isRead ? API_BASE + '?data=' + encodeURIComponent(body) : API_BASE;
+  const res = await fetch(url, isRead
+    ? {method:'GET'}
+    : {method:'POST', headers:{'Content-Type':'text/plain'}, body});
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if(data && data.success === false) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ══════════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════════
+async function doLogin(){
+  const user = document.getElementById('li-user').value.trim();
+  const pass = document.getElementById('li-pass').value.trim();
+  const server = document.getElementById('li-server').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if(!user || !pass || !server){
+    errEl.textContent = 'Please fill in username, password, and server address.';
+    errEl.style.display = 'block';
+    return;
+  }
+  API_BASE = server.replace(/\/+$/, '');
+  const btn = document.getElementById('li-btn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try{
+    const result = await apiCall('login', {username: user, password: pass});
+    if(!result.success){
+      errEl.textContent = result.error || 'Invalid credentials.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Sign In';
+      return;
+    }
+    TOKEN = result.token;
+    CURRENT_USER = result.user;
+    localStorage.setItem('sp_admin_server', API_BASE);
+    localStorage.setItem('sp_admin_token', TOKEN);
+    localStorage.setItem('sp_admin_user', JSON.stringify(CURRENT_USER));
+    initApp();
+  }catch(e){
+    errEl.textContent = 'Could not reach the server — ' + e.message;
+    errEl.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Sign In';
+}
+
+function logout(){
+  TOKEN=''; CURRENT_USER=null; DATA=null;
+  localStorage.removeItem('sp_admin_token');
+  localStorage.removeItem('sp_admin_user');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+// ══════════════════════════════════════════════════════
+//  APP INIT
+// ══════════════════════════════════════════════════════
+async function initApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sb-name').textContent = CURRENT_USER.name;
+  document.getElementById('sb-role').textContent = CURRENT_USER.role;
+  buildSidebar();
+  await refreshData();
+  switchTab('rawmaterials');
+}
+
+function buildSidebar(){
+  const nav = document.getElementById('sidebar-nav');
+  nav.innerHTML = TABS.map(t =>
+    `<div class="nav-item" id="nav-${t.id}" onclick="switchTab('${t.id}')">${ICONS[t.icon]}<span>${t.label}</span></div>`
+  ).join('');
+}
+
+async function refreshData(){
+  try{
+    const result = await apiCall('loadAll');
+    DATA = result.data;
+  }catch(e){
+    toast('Could not load data — ' + e.message, 'err');
+    if(e.message.toLowerCase().includes('authenticat')){ logout(); }
+  }
+}
+
+function switchTab(tab){
+  activeTab = tab;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('nav-'+tab)?.classList.add('active');
+  const titles = {
+    rawmaterials:['Raw Materials','Material master — prices, suppliers, stock thresholds'],
+    users:['Users','Who can log in, and what they can do'],
+    machines:['Machines','Production machines and their hourly cost'],
+    shifts:['Shifts','Working shifts used in production entries'],
+    settings:['Settings','Packaging cost, inventory debit rule, labour rate'],
+  };
+  document.getElementById('page-title').textContent = titles[tab][0];
+  document.getElementById('page-sub').textContent = titles[tab][1];
+  document.getElementById('add-btn').style.display = tab==='settings' ? 'none' : 'inline-flex';
+  renderTab(tab);
+}
+
+function renderTab(tab){
+  const c = document.getElementById('page-content');
+  if(!DATA){ c.innerHTML = '<div class="loading">Loading…</div>'; return; }
+  if(tab==='rawmaterials') return renderRawMaterials(c);
+  if(tab==='users') return renderUsers(c);
+  if(tab==='machines') return renderMachines(c);
+  if(tab==='shifts') return renderShifts(c);
+  if(tab==='settings') return renderSettings(c);
+}
+
+function emptyState(msg){
+  return `<div class="empty-state">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+    <p>${msg}</p></div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  RAW MATERIALS TAB
+// ══════════════════════════════════════════════════════
+function stockStatus(rm){
+  const inv = (DATA.inventory||[]).find(i=>i.rmId===rm.id) || {quantity:0};
+  if(inv.quantity<=0) return 'out';
+  if(rm.minStock>0 && inv.quantity<rm.minStock) return 'low';
+  return 'ok';
+}
+
+function renderRawMaterials(c){
+  const rows = DATA.rawMaterials || [];
+  if(!rows.length){ c.innerHTML = emptyState('No raw materials yet. Click "+ Add New" to create one.'); return; }
+  const canSeeRate = rows[0] && rows[0].rate !== null && rows[0].rate !== undefined;
+  c.innerHTML = `<div class="card">
+    <div class="card-toolbar">
+      <input class="search-input" id="rm-search" placeholder="Search materials…" oninput="filterTable('rm-search','rm-table')">
+    </div>
+    <div style="overflow-x:auto"><table id="rm-table">
+      <thead><tr><th>Name</th><th>Code</th><th>Category</th><th>Stock</th>${canSeeRate?'<th>Rate ₹</th>':''}<th>Supplier</th><th></th></tr></thead>
+      <tbody>
+      ${rows.map(rm=>{
+        const inv=(DATA.inventory||[]).find(i=>i.rmId===rm.id)||{quantity:0};
+        const st=stockStatus(rm);
+        const pillClass = st==='ok'?'pill-ok':st==='low'?'pill-warn':'pill-danger';
+        const pillText = st==='ok'?'In stock':st==='low'?'Low':'Out';
+        const color = CATEGORY_COLORS[rm.category]||CATEGORY_COLORS.Other;
+        return `<tr class="status-row status-${st}">
+          <td><strong>${esc(rm.name)}</strong></td>
+          <td class="mono" style="color:var(--muted);font-size:12px">${esc(rm.code)}</td>
+          <td><span class="swatch-dot" style="background:${color}"></span>${esc(rm.category||'—')}</td>
+          <td>${inv.quantity.toFixed(2)} ${esc(rm.unit)} <span class="pill ${pillClass}" style="margin-left:6px">${pillText}</span></td>
+          ${canSeeRate?`<td class="mono">₹${(rm.rate||0).toFixed(2)}</td>`:''}
+          <td style="color:var(--muted)">${esc(rm.supplier||'—')}</td>
+          <td class="row-actions">
+            <button class="btn btn-ghost btn-sm" onclick="openEditRM(${rm.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteRM(${rm.id})">Delete</button>
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+function openAddDrawer(){
+  if(activeTab==='rawmaterials') return openEditRM(null);
+  if(activeTab==='users') return openEditUser(null);
+  if(activeTab==='machines') return openEditMachine(null);
+  if(activeTab==='shifts') return openEditShift(null);
+}
+
+function openEditRM(id){
+  const rm = id ? DATA.rawMaterials.find(r=>r.id===id) : {};
+  const body = `
+    <div class="form-row">
+      <div class="field"><label>Name *</label><input id="f-name" value="${esc(rm.name||'')}"></div>
+      <div class="field"><label>Code *</label><input id="f-code" value="${esc(rm.code||'')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Unit</label>
+        <select id="f-unit">${['KG','LTR','NOS','MTR','PKT'].map(u=>`<option ${rm.unit===u?'selected':''}>${u}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Rate per Unit (₹)</label><input id="f-rate" type="number" step="0.01" value="${rm.rate??''}"></div>
+    </div>
+    <div class="field"><label>Category</label>
+      <select id="f-category">
+        <option value="">— Select —</option>
+        ${['Binder','Pigment','Hardener','Filler','Additive','Other'].map(cat=>`<option ${rm.category===cat?'selected':''}>${cat}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Supplier</label><input id="f-supplier" value="${esc(rm.supplier||'')}"></div>
+      <div class="field"><label>Minimum Stock</label><input id="f-minstock" type="number" value="${rm.minStock??0}"></div>
+    </div>
+    <div class="field"><label>Expiry Date (optional)</label><input id="f-expiry" type="date" value="${rm.expiryDate||''}"></div>
+  `;
+  openDrawer(id?'Edit Raw Material':'Add Raw Material', body, async ()=>{
+    const name=val('f-name'), code=val('f-code');
+    if(!name||!code) return toast('Name and Code are required','err');
+    await apiCall('saveRawMaterial', {
+      isNew: !id,
+      rm: {
+        id: id||undefined, name, code, unit: val('f-unit'),
+        rate: parseFloat(val('f-rate'))||0, category: val('f-category'),
+        supplier: val('f-supplier'), minStock: parseFloat(val('f-minstock'))||0,
+        expiryDate: val('f-expiry'), updatedDate: new Date().toISOString().slice(0,10),
+      }
+    });
+    toast('Raw material saved ✓','ok');
+    closeDrawer(); await refreshData(); renderTab('rawmaterials');
+  });
+}
+
+async function deleteRM(id){
+  const rm = DATA.rawMaterials.find(r=>r.id===id);
+  if(!confirm(`Delete "${rm.name}"? This cannot be undone.`)) return;
+  try{
+    await apiCall('deleteRawMaterial', {rmId:id});
+    toast('Deleted ✓','ok');
+    await refreshData(); renderTab('rawmaterials');
+  }catch(e){ toast('Could not delete — ' + e.message, 'err'); }
+}
+
+// ══════════════════════════════════════════════════════
+//  USERS TAB
+// ══════════════════════════════════════════════════════
+const ROLE_LABELS = {admin:'Administrator',formulation:'Formulation User',inventory:'Inventory User',view:'View Only',report:'Report User',production:'Production Operator',labentry:'LAB Entry User',batchedit:'Batch Code Editor'};
+
+function renderUsers(c){
+  const rows = DATA.users || [];
+  c.innerHTML = `<div class="card">
+    <div class="card-toolbar"><input class="search-input" id="usr-search" placeholder="Search users…" oninput="filterTable('usr-search','usr-table')"></div>
+    <table id="usr-table">
+      <thead><tr><th>Name</th><th>Username</th><th>Role</th><th></th></tr></thead>
+      <tbody>${rows.map(u=>`<tr>
+        <td><strong>${esc(u.name)}</strong></td>
+        <td class="mono" style="color:var(--muted);font-size:12px">${esc(u.username)}</td>
+        <td><span class="pill pill-ok">${ROLE_LABELS[u.role]||u.role}</span></td>
+        <td class="row-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEditUser(${u.id})">Edit</button>
+          ${u.id!==1?`<button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button>`:''}
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function openEditUser(id){
+  const u = id ? DATA.users.find(x=>x.id===id) : {};
+  const body = `
+    <div class="field"><label>Full Name *</label><input id="f-uname" value="${esc(u.name||'')}"></div>
+    <div class="field"><label>Username *</label><input id="f-uusername" value="${esc(u.username||'')}"></div>
+    <div class="field"><label>Password ${id?'(leave blank to keep current)':'*'}</label><input id="f-upass" type="password"></div>
+    <div class="field"><label>Role *</label>
+      <select id="f-urole">${Object.entries(ROLE_LABELS).map(([k,v])=>`<option value="${k}" ${u.role===k?'selected':''}>${v}</option>`).join('')}</select>
+    </div>
+  `;
+  openDrawer(id?'Edit User':'Add User', body, async ()=>{
+    const name=val('f-uname'), username=val('f-uusername'), password=val('f-upass'), role=val('f-urole');
+    if(!name||!username) return toast('Name and username are required','err');
+    if(!id && !password) return toast('Password is required for a new user','err');
+    await apiCall('saveUser', {isNew: !id, user:{id: id||undefined, name, username, password, role}});
+    toast('User saved ✓','ok');
+    closeDrawer(); await refreshData(); renderTab('users');
+  });
+}
+
+async function deleteUser(id){
+  if(id===CURRENT_USER.id) return toast('You cannot delete your own account','err');
+  if(!confirm('Delete this user?')) return;
+  try{
+    await apiCall('deleteUser', {userId:id, requestedBy: CURRENT_USER.id});
+    toast('User deleted ✓','ok');
+    await refreshData(); renderTab('users');
+  }catch(e){ toast('Could not delete — ' + e.message, 'err'); }
+}
+
+// ══════════════════════════════════════════════════════
+//  MACHINES TAB
+// ══════════════════════════════════════════════════════
+function renderMachines(c){
+  const rows = DATA.machines || [];
+  if(!rows.length){ c.innerHTML = emptyState('No machines yet. Click "+ Add New" to create one.'); return; }
+  c.innerHTML = `<div class="card">
+    <table>
+      <thead><tr><th>Name</th><th>Type</th><th>Hourly Cost</th><th>Std Capacity</th><th>Status</th><th></th></tr></thead>
+      <tbody>${rows.map(mc=>`<tr>
+        <td><strong>${esc(mc.name)}</strong></td>
+        <td>${esc(mc.type)}</td>
+        <td class="mono">₹${(mc.hourlyMachineCost||0).toFixed(2)}/hr</td>
+        <td>${mc.stdKgHr?mc.stdKgHr+' kg/hr':'— (auto)'}</td>
+        <td><span class="pill ${mc.active?'pill-ok':'pill-danger'}">${mc.active?'Active':'Inactive'}</span></td>
+        <td class="row-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEditMachine(${mc.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteMachine(${mc.id})">Delete</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function openEditMachine(id){
+  const mc = id ? DATA.machines.find(x=>x.id===id) : {active:true};
+  const body = `
+    <div class="field"><label>Machine Name *</label><input id="f-mname" value="${esc(mc.name||'')}"></div>
+    <div class="form-row">
+      <div class="field"><label>Type *</label><input id="f-mtype" value="${esc(mc.type||'')}" placeholder="ACM / Extruder / Mixer"></div>
+      <div class="field"><label>Hourly Cost (₹)</label><input id="f-mcost" type="number" value="${mc.hourlyMachineCost??0}"></div>
+    </div>
+    <div class="field"><label>Standard Capacity (kg/hr) — optional</label><input id="f-mstdkg" type="number" step="0.1" value="${mc.stdKgHr??''}"></div>
+    <div class="toggle-row">
+      <div><div class="label">Active</div><div class="sub">Shown as selectable in Production Entry</div></div>
+      <div class="switch ${mc.active?'on':''}" id="f-mactive" onclick="this.classList.toggle('on')"><div class="knob"></div></div>
+    </div>
+  `;
+  openDrawer(id?'Edit Machine':'Add Machine', body, async ()=>{
+    const name=val('f-mname'), type=val('f-mtype');
+    if(!name||!type) return toast('Name and type are required','err');
+    await apiCall('saveMachine', {machine:{
+      id: id||undefined, name, type,
+      hourlyMachineCost: parseFloat(val('f-mcost'))||0,
+      stdKgHr: val('f-mstdkg')? parseFloat(val('f-mstdkg')) : null,
+      active: document.getElementById('f-mactive').classList.contains('on'),
+    }});
+    toast('Machine saved ✓','ok');
+    closeDrawer(); await refreshData(); renderTab('machines');
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  SHIFTS TAB
+// ══════════════════════════════════════════════════════
+function renderShifts(c){
+  const rows = DATA.shifts || [];
+  if(!rows.length){ c.innerHTML = emptyState('No shifts yet. Click "+ Add New" to create one.'); return; }
+  c.innerHTML = `<div class="card">
+    <table>
+      <thead><tr><th>Shift</th><th>Start</th><th>End</th><th>Status</th><th></th></tr></thead>
+      <tbody>${rows.map(s=>`<tr>
+        <td><span class="swatch-dot" style="background:${s.color||'#3D7A63'}"></span><strong>${esc(s.name)}</strong></td>
+        <td class="mono">${esc(s.startTime)}</td>
+        <td class="mono">${esc(s.endTime)}${s.crossesMidnight?' <span style="color:var(--muted);font-size:11px">(+1 day)</span>':''}</td>
+        <td><span class="pill ${s.active?'pill-ok':'pill-danger'}">${s.active?'Active':'Inactive'}</span></td>
+        <td class="row-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEditShift(${s.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteShift(${s.id})">Delete</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function openEditShift(id){
+  const s = id ? DATA.shifts.find(x=>x.id===id) : {active:true, color:'#3D7A63'};
+  const body = `
+    <div class="field"><label>Shift Name *</label><input id="f-sname" value="${esc(s.name||'')}"></div>
+    <div class="form-row">
+      <div class="field"><label>Start Time *</label><input id="f-sstart" type="time" value="${s.startTime||''}"></div>
+      <div class="field"><label>End Time *</label><input id="f-send" type="time" value="${s.endTime||''}"></div>
+    </div>
+    <div class="toggle-row">
+      <div><div class="label">Crosses midnight</div><div class="sub">e.g. a night shift ending after 12 AM</div></div>
+      <div class="switch ${s.crossesMidnight?'on':''}" id="f-smidnight" onclick="this.classList.toggle('on')"><div class="knob"></div></div>
+    </div>
+    <div class="toggle-row">
+      <div><div class="label">Active</div><div class="sub">Shown as selectable in Production Entry</div></div>
+      <div class="switch ${s.active?'on':''}" id="f-sactive" onclick="this.classList.toggle('on')"><div class="knob"></div></div>
+    </div>
+  `;
+  openDrawer(id?'Edit Shift':'Add Shift', body, async ()=>{
+    const name=val('f-sname'), start=val('f-sstart'), end=val('f-send');
+    if(!name||!start||!end) return toast('Name, start and end time are required','err');
+    await apiCall('saveShift', {shift:{
+      id: id||undefined, name, startTime:start, endTime:end,
+      crossesMidnight: document.getElementById('f-smidnight').classList.contains('on'),
+      active: document.getElementById('f-sactive').classList.contains('on'),
+      color: s.color||'#3D7A63',
+    }});
+    toast('Shift saved ✓','ok');
+    closeDrawer(); await refreshData(); renderTab('shifts');
+  });
+}
+
+async function deleteShift(id){
+  if(!confirm('Delete this shift?')) return;
+  try{
+    await apiCall('deleteShift', {shiftId:id});
+    toast('Shift deleted ✓','ok');
+    await refreshData(); renderTab('shifts');
+  }catch(e){ toast('Could not delete — ' + e.message, 'err'); }
+}
+
+async function deleteMachine(id){
+  const mc = DATA.machines.find(x=>x.id===id);
+  if(!confirm(`Delete "${mc.name}"? This cannot be undone.`)) return;
+  try{
+    await apiCall('deleteMachine', {machineId:id});
+    toast('Machine deleted ✓','ok');
+    await refreshData(); renderTab('machines');
+  }catch(e){ toast('Could not delete — ' + e.message, 'err'); }
+}
+
+// ══════════════════════════════════════════════════════
+//  SETTINGS TAB
+// ══════════════════════════════════════════════════════
+function renderSettings(c){
+  const pkg = DATA.packagingCost ?? 26;
+  const debit = !!DATA.debitInventoryOnSave;
+  const labour = DATA.labourRate ?? 60;
+  c.innerHTML = `
+    <div class="card" style="padding:24px;max-width:560px;margin-bottom:16px;">
+      <div class="field"><label>Packaging Cost per Batch (₹)</label><input id="s-pkg" type="number" step="0.01" value="${pkg}"></div>
+      <button class="btn btn-primary" onclick="saveOneSetting('packagingCost', document.getElementById('s-pkg').value)">Save Packaging Cost</button>
+    </div>
+    <div class="card" style="padding:24px;max-width:560px;margin-bottom:16px;">
+      <div class="toggle-row" style="margin-bottom:0;">
+        <div><div class="label">Debit inventory automatically when a formulation is saved</div><div class="sub">Currently OFF at Surface Paints — Sudhir Ji debits manually and deliberately, as a separate step</div></div>
+        <div class="switch ${debit?'on':''}" id="s-debit-toggle" onclick="toggleDebitSetting()"><div class="knob"></div></div>
+      </div>
+    </div>
+    <div class="card" style="padding:24px;max-width:560px;">
+      <div class="field"><label>Labour Rate (₹ per man-hour)</label><input id="s-labour" type="number" step="0.01" value="${labour}"></div>
+      <button class="btn btn-primary" onclick="saveOneSetting('labourRate', document.getElementById('s-labour').value)">Save Labour Rate</button>
+    </div>
+  `;
+}
+
+async function saveOneSetting(key, value){
+  try{
+    await apiCall('saveSetting', {key, value});
+    toast('Setting saved ✓','ok');
+    await refreshData();
+  }catch(e){ toast('Could not save — ' + e.message, 'err'); }
+}
+
+async function toggleDebitSetting(){
+  const el = document.getElementById('s-debit-toggle');
+  const newVal = !el.classList.contains('on');
+  try{
+    await apiCall('saveSetting', {key:'debitInventoryOnSave', value: newVal});
+    el.classList.toggle('on');
+    toast('Setting saved ✓','ok');
+    await refreshData();
+  }catch(e){ toast('Could not save — ' + e.message, 'err'); }
+}
+
+// ══════════════════════════════════════════════════════
+//  DRAWER (generic add/edit panel)
+// ══════════════════════════════════════════════════════
+function openDrawer(title, bodyHtml, onSave){
+  document.getElementById('drawer').innerHTML = `
+    <div class="drawer-header"><h3>${title}</h3><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
+    <div class="drawer-body">${bodyHtml}</div>
+    <div class="drawer-footer">
+      <button class="btn btn-ghost" onclick="closeDrawer()">Cancel</button>
+      <button class="btn btn-primary" id="drawer-save-btn">Save</button>
+    </div>`;
+  document.getElementById('drawer-save-btn').onclick = async function(){
+    this.disabled = true; this.textContent = 'Saving…';
+    try{ await onSave(); }
+    catch(e){ toast('Could not save — ' + e.message, 'err'); this.disabled=false; this.textContent='Save'; }
+  };
+  document.getElementById('drawer-overlay').style.display = 'flex';
+}
+function closeDrawer(){ document.getElementById('drawer-overlay').style.display = 'none'; }
+
+// ══════════════════════════════════════════════════════
+//  UTIL
+// ══════════════════════════════════════════════════════
+function val(id){ return document.getElementById(id).value.trim(); }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function filterTable(inputId, tableId){
+  const q = document.getElementById(inputId).value.toLowerCase();
+  document.querySelectorAll('#'+tableId+' tbody tr').forEach(row=>{
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════
+if(TOKEN && CURRENT_USER){
+  document.getElementById('li-server').value = API_BASE;
+  initApp();
+} else {
+  const savedServer = localStorage.getItem('sp_admin_server');
+  if(savedServer) {
+    document.getElementById('li-server').value = savedServer;
+  } else if (window.location.origin && window.location.origin.startsWith('http')) {
+    document.getElementById('li-server').value = window.location.origin + '/api';
+  }
+}
+</script>
+</body>
+</html>
