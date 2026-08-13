@@ -3427,24 +3427,11 @@
                 { id: 2, rmId: 2, type: 'purchase', qty: 200, date: '2025-01-16', remarks: 'Monthly order', by: 'admin' },
                 { id: 3, rmId: 6, type: 'purchase', qty: 500, date: '2025-01-17', remarks: 'Bulk purchase', by: 'admin' },
             ],
-            formulations: [
-                {
-                    id: 1, productName: 'LDPE Pipe Compound', productCode: 'FG001', batchNo: 'B2025-001', mfgDate: '2025-01-20 10:30', remarks: 'Standard grade', by: 'sudhir', byName: 'Sudhir Ji', createdAt: '2025-01-20 10:30',
-                    items: [{ rmId: 1, qty: 60 }, { rmId: 3, qty: 2 }, { rmId: 5, qty: 1 }, { rmId: 6, qty: 37 }]
-                },
-                {
-                    id: 2, productName: 'HDPE Cable Sheath', productCode: 'FG002', batchNo: 'B2025-002', mfgDate: '2025-01-22 14:15', remarks: 'UV stabilized', by: 'sudhir', byName: 'Sudhir Ji', createdAt: '2025-01-22 14:15',
-                    items: [{ rmId: 2, qty: 75 }, { rmId: 4, qty: 3 }, { rmId: 7, qty: 1.5 }, { rmId: 8, qty: 2 }]
-                },
-            ],
+            formulations: [],
             packagingCost: 26,
             settings: { debitInventoryOnSave: true },
-            auditLog: [
-                { time: '2025-01-20 10:30', user: 'Sudhir Ji', action: 'Created formulation', detail: 'FG001 — Batch B2025-001' },
-                { time: '2025-01-22 14:15', user: 'Sudhir Ji', action: 'Created formulation', detail: 'FG002 — Batch B2025-002' },
-                { time: '2025-01-22 09:00', user: 'Administrator', action: 'Updated raw material price', detail: 'RM001 rate changed to ₹95/kg' },
-            ],
-            nextId: { rm: 9, formulation: 3, user: 9, txn: 4, comment: 1 },
+            auditLog: [],
+            nextId: { rm: 9, formulation: 1, user: 9, txn: 4, comment: 1 },
             formulationComments: [], // [{id, formulationId, type:'production'|'sushil'|'md', text, by, byName, createdAt}]
             basePrices: [], // [{id, formulationId, rmId, rmName, enteredRate, qty, unit, savedAt}] — v2.3
             // ── Production Efficiency & Machine Costing (v3.0) ──────────────────────────
@@ -7338,6 +7325,7 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
                     
                     const formSheet = wb.Sheets['Formulations'];
                     const itemsSheet = wb.Sheets['FormulationItems'];
+                    const rmSheet = wb.Sheets['RawMaterials'];
                     
                     if (!formSheet) {
                         document.getElementById('f-import-preview').innerHTML = '<div class="alert alert-error">Missing "Formulations" sheet in workbook.</div>';
@@ -7350,13 +7338,14 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
                     
                     const formulations = XLSX.utils.sheet_to_json(formSheet);
                     const formulationItems = XLSX.utils.sheet_to_json(itemsSheet);
+                    const rawMaterials = rmSheet ? XLSX.utils.sheet_to_json(rmSheet) : [];
                     
                     if (!formulations.length) {
                         document.getElementById('f-import-preview').innerHTML = '<div class="alert alert-error">"Formulations" sheet is empty.</div>';
                         return;
                     }
                     
-                    window._fImportData = { formulations, formulationItems };
+                    window._fImportData = { formulations, formulationItems, rawMaterials };
                     
                     let previewHTML = `<div class="card-title">Import Summary</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">

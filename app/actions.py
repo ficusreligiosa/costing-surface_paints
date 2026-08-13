@@ -667,6 +667,7 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
     import json
     formulations = payload.get("formulations", [])
     items = payload.get("formulationItems", [])
+    raw_materials_data = payload.get("rawMaterials", [])
     
     def safe_float(val):
         if val is None or str(val).strip() == "" or str(val).lower() == "none":
@@ -687,19 +688,36 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
     updated_f = 0
     imported_items = 0
     
-    # Map formulation items by formulationId
-    items_by_fid = {}
-    for it in items:
-        fid_val = it.get("formulationId") or it.get("formulation_id")
-        if fid_val is None:
-            continue
-        try:
-            fid = int(float(fid_val))
-        except (ValueError, TypeError):
-            continue
-        if fid not in items_by_fid:
-            items_by_fid[fid] = []
-        items_by_fid[fid].append(it)
+    # Process optional RawMaterials sheet data if provided
+    if raw_materials_data:
+        for rm in raw_materials_data:
+            rm_id_val = rm.get("id") or rm.get("ID")
+            if rm_id_val is None:
+                continue
+            try:
+                rm_id = int(float(rm_id_val))
+            except (ValueError, TypeError):
+                continue
+            name = str(rm.get("name") or rm.get("Name") or "").strip()
+            code = str(rm.get("code") or rm.get("Code") or f"RM{rm_id:03d}").strip()
+            if not name:
+                continue
+            existing = db.get(m.RawMaterial, rm_id)
+            if not existing:
+                existing_code = db.scalar(select(m.RawMaterial).where(m.RawMaterial.code == code))
+                if existing_code:
+                    code = f"{code}_{rm_id}"
+                db.add(m.RawMaterial(
+                    id=rm_id,
+                    name=name,
+                    code=code,
+                    unit=str(rm.get("unit") or rm.get("Unit") or "KG"),
+                    rate=float(safe_float(rm.get("rate") or rm.get("Rate")) or 0),
+                    supplier=str(rm.get("supplier") or rm.get("Supplier") or ""),
+                    category=str(rm.get("category") or rm.get("Category") or ""),
+                    min_stock=float(safe_float(rm.get("minStock") or rm.get("min_stock")) or 0)
+                ))
+        db.flush()
         
     max_f_id = 0
     incoming_fids = []
@@ -803,15 +821,35 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
         f.gloss_angle = str(f_data.get("glossAngle") or f_data.get("gloss_angle") or "")
         f.lab_notes = str(f_data.get("labNotes") or f_data.get("lab_notes") or "")
 
+    # CRITICAL FIX: Flush pending Formulation inserts to DB so foreign keys in formulation_items are satisfied!
+    db.flush()
+
     # Delete old formulation items for incoming formulations in bulk
     if incoming_fids:
         db.query(m.FormulationItem).filter(m.FormulationItem.formulation_id.in_(incoming_fids)).delete(synchronize_session=False)
 
-    # Bulk insert all new formulation items
+    valid_fids = set(db.scalars(select(m.Formulation.id)).all())
+    valid_rmids = set(db.scalars(select(m.RawMaterial.id)).all())
+
+    # Map formulation items by formulationId
+    items_by_fid = {}
+    for it in items:
+        fid_val = it.get("formulationId") or it.get("formulation_id")
+        if fid_val is None:
+            continue
+        try:
+            fid = int(float(fid_val))
+        except (ValueError, TypeError):
+            continue
+        if fid not in items_by_fid:
+            items_by_fid[fid] = []
+        items_by_fid[fid].append(it)
+
+    # Bulk insert all valid new formulation items
     new_items_mappings = []
     for fid, it_list in items_by_fid.items():
-        if fid not in incoming_fids:
-            # Skip items for formulations we didn't process
+        if fid not in incoming_fids or fid not in valid_fids:
+            # Skip items for formulations we didn't process or that don't exist in DB
             continue
         for it in it_list:
             rm_id_val = it.get("rmId") or it.get("rm_id")
@@ -820,6 +858,9 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
             try:
                 rm_id = int(float(rm_id_val))
             except (ValueError, TypeError):
+                continue
+            if rm_id not in valid_rmids:
+                # Skip items referencing non-existent raw materials to prevent FK constraint violation
                 continue
             qty_val = it.get("qty") or it.get("qty")
             new_items_mappings.append({
