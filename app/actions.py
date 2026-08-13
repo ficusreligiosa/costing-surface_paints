@@ -897,10 +897,32 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
 
 
 
+def action_delete_formulation(db: Session, payload: dict, current_user=None):
+    fid_val = payload.get("id") or payload.get("formulationId")
+    if fid_val is None:
+        return {"success": False, "error": "Formulation ID missing"}
+    try:
+        fid = int(float(fid_val))
+    except (ValueError, TypeError):
+        return {"success": False, "error": "Invalid Formulation ID"}
+
+    f = db.get(m.Formulation, fid)
+    if not f:
+        return {"success": False, "error": f"Formulation ID {fid} not found"}
+
+    db.query(m.FormulationItem).filter(m.FormulationItem.formulation_id == fid).delete(synchronize_session=False)
+    db.query(m.FormulationComment).filter(m.FormulationComment.formulation_id == fid).delete(synchronize_session=False)
+    db.query(m.BasePrice).filter(m.BasePrice.formulation_id == fid).delete(synchronize_session=False)
+    db.delete(f)
+    db.commit()
+    return {"success": True}
+
+
 ACTIONS = {
     "login": action_login,
     "loadAll": action_load_all,
     "saveFormulation": action_save_formulation,
+    "deleteFormulation": action_delete_formulation,
     "debitInventory": action_debit_inventory,
     "updateBatchNumber": action_update_batch_number,
     "saveRawMaterial": action_save_raw_material,
@@ -940,6 +962,7 @@ ACTIONS = {
 ACTION_PERMISSIONS = {
     "loadAll": "*",
     "saveFormulation": {"admin", "formulation"},
+    "deleteFormulation": {"admin", "formulation"},
     "debitInventory": {"admin", "formulation"},
     "updateBatchNumber": {"admin", "formulation", "batchedit"},
     "saveLabGloss": {"admin", "formulation", "labentry"},
