@@ -702,8 +702,22 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
             code = str(rm.get("code") or rm.get("Code") or f"RM{rm_id:03d}").strip()
             if not name:
                 continue
+            unit_val = str(rm.get("unit") or rm.get("Unit") or "KG")
+            rate_val = float(safe_float(rm.get("rate") or rm.get("Rate")) or 0)
+            supplier_val = str(rm.get("supplier") or rm.get("Supplier") or "")
+            cat_val = str(rm.get("category") or rm.get("Category") or "")
+            min_stock_val = float(safe_float(rm.get("minStock") or rm.get("min_stock")) or 0)
+
             existing = db.get(m.RawMaterial, rm_id)
-            if not existing:
+            if existing:
+                existing.name = name
+                existing.code = code
+                existing.unit = unit_val
+                existing.rate = rate_val
+                existing.supplier = supplier_val
+                existing.category = cat_val
+                existing.min_stock = min_stock_val
+            else:
                 existing_code = db.scalar(select(m.RawMaterial).where(m.RawMaterial.code == code))
                 if existing_code:
                     code = f"{code}_{rm_id}"
@@ -711,11 +725,11 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
                     id=rm_id,
                     name=name,
                     code=code,
-                    unit=str(rm.get("unit") or rm.get("Unit") or "KG"),
-                    rate=float(safe_float(rm.get("rate") or rm.get("Rate")) or 0),
-                    supplier=str(rm.get("supplier") or rm.get("Supplier") or ""),
-                    category=str(rm.get("category") or rm.get("Category") or ""),
-                    min_stock=float(safe_float(rm.get("minStock") or rm.get("min_stock")) or 0)
+                    unit=unit_val,
+                    rate=rate_val,
+                    supplier=supplier_val,
+                    category=cat_val,
+                    min_stock=min_stock_val
                 ))
         db.flush()
         
@@ -833,6 +847,7 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
 
     # Map formulation items by formulationId
     items_by_fid = {}
+    missing_rms_to_add = {}
     for it in items:
         fid_val = it.get("formulationId") or it.get("formulation_id")
         if fid_val is None:
@@ -844,6 +859,32 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
         if fid not in items_by_fid:
             items_by_fid[fid] = []
         items_by_fid[fid].append(it)
+
+        # Collect missing raw materials referenced in items
+        rm_id_val = it.get("rmId") or it.get("rm_id")
+        if rm_id_val is not None:
+            try:
+                rm_id = int(float(rm_id_val))
+                if rm_id not in valid_rmids and rm_id not in missing_rms_to_add:
+                    missing_rms_to_add[rm_id] = m.RawMaterial(
+                        id=rm_id,
+                        name=f"RM-{rm_id}",
+                        code=f"RM{rm_id:03d}",
+                        unit=str(it.get("unit") or "KG"),
+                        rate=float(safe_float(it.get("rate")) or 0.0),
+                        supplier="",
+                        category="",
+                        min_stock=0.0
+                    )
+            except (ValueError, TypeError):
+                pass
+
+    # Auto-provision any missing raw material IDs so no recipe items get dropped
+    if missing_rms_to_add:
+        for rm_obj in missing_rms_to_add.values():
+            db.add(rm_obj)
+        db.flush()
+        valid_rmids = set(db.scalars(select(m.RawMaterial.id)).all())
 
     # Bulk insert all valid new formulation items
     new_items_mappings = []
