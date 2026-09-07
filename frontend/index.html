@@ -579,6 +579,7 @@
             top: 50%;
             transform: translateY(-50%);
             color: var(--text3);
+            pointer-events: none;
         }
 
         .search-input {
@@ -3615,7 +3616,7 @@
                             if (!f.refNo) return;                        // no refNo — nothing to look up
                             if (f.partyId || f.partyName) return;       // already has party data — skip
                             const _match = DB.partyLookup.find(p =>
-                                String(p.refNo || '').trim().toLowerCase() === f.refNo.trim().toLowerCase()
+                                String(p.refNo || '').trim().toLowerCase() === String(f.refNo || '').trim().toLowerCase()
                             );
                             if (_match) {
                                 f.partyId = String(_match.partyId || '').trim();
@@ -4198,17 +4199,29 @@
         // Used by renderFormulations() (first page), _fmLoadMore() (pagination) and
         // _fmLoadAllRemaining() (search), so every card always shows the SAME full
         // set of buttons/info no matter how it was loaded onto the page.
+        // buildFormCardHTML — single source of truth for a formulation card's HTML.
+        // Used by renderFormulations() (first page), _fmLoadMore() (pagination) and
+        // _fmLoadAllRemaining() (search), so every card always shows the SAME full
+        // set of buttons/info no matter how it was loaded onto the page.
         function buildFormCardHTML(f) {
             try {
                 if (!f || !f.productName) return '';
                 f.items = f.items || [];
+                // Auto-enrich party details from DB.partyLookup if refNo is present but party details are blank
+                if (f.refNo && (!f.partyName && !f.partyId) && DB.partyLookup && DB.partyLookup.length) {
+                    const _match = DB.partyLookup.find(p => String(p.refNo || '').trim().toLowerCase() === String(f.refNo || '').trim().toLowerCase());
+                    if (_match) {
+                        f.partyId = String(_match.partyId || '').trim();
+                        f.partyName = String(_match.partyName || '').trim();
+                    }
+                }
                 const cost = calcBatchCost(f);
                 const totalQty = calcTotalQty(f);
-                return `<div class="batch-card" data-id="${f.id}" data-name="${(f.productName || '').toLowerCase()}" data-code="${(f.productCode || '').toLowerCase()}" data-batch="${(f.batchNo || '').toLowerCase()}" data-date="${f.mfgDate || ''}" data-remarks="${(f.remarks || '').toLowerCase()}" data-by="${(f.byName || f.by || '').toLowerCase()}">
+                return `<div class="batch-card" data-id="${f.id}" data-name="${(f.productName || '').toLowerCase()}" data-code="${(f.productCode || '').toLowerCase()}" data-batch="${(f.batchNo || '').toLowerCase()}" data-date="${f.mfgDate || ''}" data-remarks="${(f.remarks || '').toLowerCase()}" data-by="${(f.byName || f.by || '').toLowerCase()}" data-ref="${(f.refNo || '').toLowerCase()}" data-party="${(f.partyName || f.partyId || '').toLowerCase()}">
       <div class="batch-card-top">
         <div>
           <div class="batch-card-title">${f.productName}</div>
-          <div class="batch-card-code">${f.productCode} · Batch: ${f.batchNo}${f.productType ? ` · <span style="background:#dbeafe;color:#1e40af;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;">${f.productType}</span>` : ''}${f.productFinish ? ` · <span style="background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;">${f.productFinish}</span>` : ''}</div>
+          <div class="batch-card-code">${f.productCode ? f.productCode + ' · ' : ''}Batch: ${f.batchNo || '—'}${f.productType ? ` · <span style="background:#dbeafe;color:#1e40af;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;">${f.productType}</span>` : ''}${f.productFinish ? ` · <span style="background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;">${f.productFinish}</span>` : ''}</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           ${can('viewCost') ? `<div class="cost-tag" style="font-size:15px;font-weight:700;">${fmtCurrency(cost.total)}</div>` : ''}
@@ -4251,24 +4264,26 @@
         </div>
       </div>
       <div class="batch-card-meta" style="margin-top:10px;">
-        <span>📅 ${f.mfgDate}</span><span>👤 ${f.byName}</span>${(currentUser.role !== 'labentry' && currentUser.role !== 'batchedit') ? `<span>⚗ ${(f.items || []).length} materials · ${calcTotalQtyDisplay(f)}</span>` : `<span>⚗ Total: ${calcTotalQtyDisplay(f)}</span>`}${f.remarks ? `<span>💬 ${f.remarks}</span>` : ''}<span style="background:${f.inventoryPartialDebit ? 'var(--orange-light)' : (f.inventoryDebited === false || f.inventoryDebited === "false") ? 'var(--accent-light)' : 'var(--green-light)'};color:${f.inventoryPartialDebit ? 'var(--orange)' : (f.inventoryDebited === false || f.inventoryDebited === "false") ? 'var(--accent2)' : 'var(--green)'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${f.inventoryPartialDebit ? '⚠️ Partial Debit' : (f.inventoryDebited === false || f.inventoryDebited === "false") ? '🔒 No Debit' : '📦 Debited'}</span>
+        <span>📅 ${f.mfgDate}</span><span>👤 ${f.byName || f.by || '—'}</span>${(currentUser.role !== 'labentry' && currentUser.role !== 'batchedit') ? `<span>⚗ ${(f.items || []).length} materials · ${calcTotalQtyDisplay(f)}</span>` : `<span>⚗ Total: ${calcTotalQtyDisplay(f)}</span>`}${f.remarks ? `<span>💬 ${f.remarks}</span>` : ''}<span style="background:${f.inventoryPartialDebit ? 'var(--orange-light)' : (f.inventoryDebited === false || f.inventoryDebited === "false") ? 'var(--accent-light)' : 'var(--green-light)'};color:${f.inventoryPartialDebit ? 'var(--orange)' : (f.inventoryDebited === false || f.inventoryDebited === "false") ? 'var(--accent2)' : 'var(--green)'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${f.inventoryPartialDebit ? '⚠️ Partial Debit' : (f.inventoryDebited === false || f.inventoryDebited === "false") ? '🔒 No Debit' : '📦 Debited'}</span>
       </div>
-      ${(f.partyName || f.partyId || f.refNo) ? `<div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        ${(f.partyName || f.partyId) ? `<div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);border-radius:10px;padding:8px 18px;display:inline-flex;align-items:center;gap:8px;">
-          <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;">${can('manageUsers') ? 'Party Name' : 'Party ID'}</span>
-          <span style="font-size:16px;font-weight:800;color:#fff;letter-spacing:0.2px;">${can('manageUsers') ? (f.partyName || f.partyId) : f.partyId}</span>
+      ${(f.partyName || f.partyId || f.refNo) ? `<div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        ${(f.partyName || f.partyId) ? `<div onclick="quickFilterByParty('${_esc(can('manageUsers') ? (f.partyName || f.partyId) : f.partyId)}')" title="Click to filter by this party" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);border-radius:8px;padding:6px 14px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 4px rgba(29,78,216,0.15);cursor:pointer;user-select:none;transition:transform .1s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+          <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:1px;">${can('manageUsers') ? 'PARTY NAME' : 'PARTY ID'}</span>
+          <span style="font-size:14px;font-weight:800;color:#fff;letter-spacing:0.3px;">${can('manageUsers') ? (f.partyName || f.partyId) : f.partyId}</span>
         </div>`: ''}
-        ${f.refNo ? `<div style="background:#f8faff;border:1.5px solid #bfdbfe;border-radius:10px;padding:8px 18px;display:inline-flex;align-items:center;gap:8px;">
-          <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Ref No</span>
-          <span style="font-size:16px;font-weight:800;color:#1d4ed8;font-family:'JetBrains Mono',monospace;">${f.refNo}</span>
+        ${f.refNo ? `<div onclick="quickFilterByRef('${_esc(f.refNo)}')" title="Click to filter by this Ref No" style="background:#f8faff;border:1.5px solid #bfdbfe;border-radius:8px;padding:6px 14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;transition:transform .1s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+          <span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">REF NO</span>
+          <span style="font-size:15px;font-weight:800;color:#1d4ed8;font-family:'JetBrains Mono',monospace;">${f.refNo}</span>
         </div>`: ''}
       </div>`: ''}
       
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        ${f.refNo ? `<span onclick="quickFilterByRef('${_esc(f.refNo)}')" title="Click to filter by Ref No" style="background:#eff6ff;color:#1e40af;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;border:1px solid #bfdbfe;cursor:pointer;">📋 Ref: ${f.refNo}</span>` : ''}
+        ${(f.partyId || f.partyName) ? `<span onclick="quickFilterByParty('${_esc(can('manageUsers') ? (f.partyName || f.partyId) : f.partyId)}')" title="Click to filter by party" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid #bfdbfe;letter-spacing:0.2px;cursor:pointer;">🏢 ${can('manageUsers') ? (f.partyName || f.partyId) : f.partyId}</span>` : ''}
         ${f.labValues ? `<span style="background:var(--purple-light);color:var(--purple);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">🧪 L:${f.labValues.L || '—'} a:${f.labValues.A || '—'} b:${f.labValues.B || '—'}</span>` : ''}
         ${f.glossValue != null ? `<span style="background:#fdf4ff;color:#9333ea;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">✨ Gloss: ${f.glossValue} GU</span>` : ''}
-        ${f.refNo ? `<span style="background:#eff6ff;color:#1e40af;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">📋 Ref: ${f.refNo}</span>` : ''}
-        ${(f.partyId || f.partyName) ? `<span style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid #bfdbfe;letter-spacing:0.2px;">🏢 ${can('manageUsers') ? (f.partyName || f.partyId) : f.partyId}</span>` : ''}
         ${(() => { const cc = DB.formulationComments.filter(c => c.formulationId === f.id).length; return cc > 0 ? `<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">💬 ${cc} comment${cc > 1 ? 's' : ''}</span>` : ''; })()}
+      </div>
       ${(() => {
                         const fComments = DB.formulationComments.filter(c => c.formulationId === f.id);
                         if (fComments.length === 0) return '';
@@ -4281,9 +4296,9 @@
           ${fComments.map(c => {
                             const cfg = typeConfig[c.type] || { label: c.type, bg: 'var(--bg3)', color: 'var(--text)', border: 'var(--border)' };
                             return `<div style="background:${cfg.bg};border:1px solid ${cfg.border};border-radius:8px;padding:6px 12px;display:flex;align-items:flex-start;gap:8px;">
-              <span style="font-size:10px;font-weight:800;color:${cfg.color};white-space:nowrap;padding-top:1px;">By ${cfg.label}:</span>
-              <span style="font-size:12px;color:var(--text);font-weight:500;line-height:1.4;">${c.text}</span>
-            </div>`;
+               <span style="font-size:10px;font-weight:800;color:${cfg.color};white-space:nowrap;padding-top:1px;">By ${cfg.label}:</span>
+               <span style="font-size:12px;color:var(--text);font-weight:500;line-height:1.4;">${c.text}</span>
+             </div>`;
                         }).join('')}
         </div>`;
                     })()}
@@ -4339,6 +4354,10 @@
     <div class="search-input-wrap">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="search-input" id="form-search" placeholder="Search by product, batch, code..." oninput="filterFormulations()">
+    </div>
+    <div class="search-input-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <input class="search-input" id="form-search-ref" placeholder="Search by Reference No..." oninput="filterFormulations()">
     </div>
     <select class="filter-select" id="form-filter-date" onchange="filterFormulations()">
       <option value="">All Dates</option>
@@ -4400,8 +4419,9 @@
                 list.appendChild(s);
             }
             const q = document.getElementById('form-search')?.value || '';
+            const qRef = document.getElementById('form-search-ref')?.value || '';
             const dateFilter = document.getElementById('form-filter-date')?.value || '';
-            if (q || dateFilter) filterFormulations();
+            if (q || qRef || dateFilter) filterFormulations();
         }
 
         // _fmLoadAllRemaining — pulls EVERY remaining formulation into the DOM
@@ -4421,14 +4441,33 @@
             window._fmLoaded = window._fmAllForms.length;
         }
 
+        window.quickFilterByRef = function(refVal) {
+            const el = document.getElementById('form-search-ref');
+            if (el) {
+                el.value = refVal;
+                filterFormulations();
+                el.focus();
+            }
+        };
+
+        window.quickFilterByParty = function(partyVal) {
+            const el = document.getElementById('form-search');
+            if (el) {
+                el.value = partyVal;
+                filterFormulations();
+                el.focus();
+            }
+        };
+
         function filterFormulations() {
-            const q = (document.getElementById('form-search')?.value || '').toLowerCase();
+            const q = (document.getElementById('form-search')?.value || '').toLowerCase().trim();
+            const qRef = (document.getElementById('form-search-ref')?.value || '').toLowerCase().trim();
             const dateFilter = document.getElementById('form-filter-date')?.value || '';
 
             // As soon as the user searches or applies a date filter, make sure ALL
             // formulations are on the page first — otherwise matches that live
             // beyond the first 50 (pagination batch) would never appear at all.
-            if ((q || dateFilter) && window._fmAllForms && window._fmLoaded < window._fmAllForms.length) {
+            if ((q || qRef || dateFilter) && window._fmAllForms && window._fmLoaded < window._fmAllForms.length) {
                 _fmLoadAllRemaining();
             }
 
@@ -4443,7 +4482,13 @@
                 const date = card.dataset.date || '';
                 const remarks = card.dataset.remarks || '';
                 const by = card.dataset.by || '';
-                let show = (!q || [name, code, batch, remarks, by].join(' ').includes(q));
+                const ref = card.dataset.ref || '';
+                const party = card.dataset.party || '';
+
+                let show = (!q || [name, code, batch, remarks, by, ref, party].join(' ').includes(q));
+                if (show && qRef) {
+                    show = ref.includes(qRef) || party.includes(qRef);
+                }
                 if (show && dateFilter) {
                     const d = new Date(date.slice(0, 10));
                     if (dateFilter === 'today') show = date.startsWith(today);
@@ -5606,7 +5651,7 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
         <div class="form-group">
           <label>Ref No <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional)</span></label>
           <input class="form-control" id="fm-refno" value="${draft ? draft.refNo : template ? template.refNo || '' : ''}" placeholder="e.g. SO-2025-042" oninput="_saveFormDraft()">
-          <div class="form-hint">Enter order/customer ref no — Party ID &amp; Party Name will auto-fill from database lookup when saving</div>
+          <div class="form-hint" id="fm-refno-hint">Enter order/customer ref no — Party ID &amp; Party Name will auto-fill from database lookup when saving</div>
         </div>
       </div>
       <hr style="border-color:var(--border);margin:16px 0;">
@@ -6274,6 +6319,21 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
                 items.push({ rmId, qty, unit, rate, label });
             });
             _formDraft = { pname, pcode, batch, remarks, refNo, productType, productFinish, items };
+
+            const refHint = document.getElementById('fm-refno-hint');
+            if (refHint) {
+                const rVal = refNo.trim().toLowerCase();
+                if (!rVal) {
+                    refHint.innerHTML = 'Enter order/customer ref no — Party ID &amp; Party Name will auto-fill from database lookup when saving';
+                } else if (DB.partyLookup && DB.partyLookup.length) {
+                    const match = DB.partyLookup.find(p => String(p.refNo || '').trim().toLowerCase() === rVal);
+                    if (match) {
+                        refHint.innerHTML = `<span style="color:#1d4ed8;font-weight:700;">✓ Matched Party: ${match.partyName || match.partyId} (ID: ${match.partyId || '—'})</span>`;
+                    } else {
+                        refHint.innerHTML = `<span style="color:var(--text3);">No party match found for "${_esc(refNo)}"</span>`;
+                    }
+                }
+            }
         }
 
         function _clearFormDraft() {

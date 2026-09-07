@@ -5,7 +5,7 @@ means the existing frontend only needs its GAS_URL swapped — no rewrite.
 """
 from datetime import datetime
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import select
+from sqlalchemy import select, func
 from . import models as m
 from .security import hash_password, verify_password, new_token
 
@@ -225,6 +225,13 @@ def action_save_formulation(db: Session, payload: dict, current_user=None):
     f.ref_no = fdata.get("refNo", "")
     f.party_id = fdata.get("partyId", "")
     f.party_name = fdata.get("partyName", "")
+    if f.ref_no and (not f.party_id or not f.party_name):
+        lookup = db.scalar(select(m.PartyLookup).where(func.lower(m.PartyLookup.ref_no) == str(f.ref_no).lower().strip()))
+        if lookup:
+            if not f.party_id:
+                f.party_id = lookup.party_id
+            if not f.party_name:
+                f.party_name = lookup.party_name
     f.lots = fdata.get("lots", 1)
     f.by = fdata.get("by", "")
     f.by_name = fdata.get("byName", "")
@@ -777,7 +784,7 @@ def action_import_formulations(db: Session, payload: dict, current_user=None):
         
         # If party id/name are empty but ref_no is present, lookup from PartyLookup
         if f.ref_no and not party_id and not party_name:
-            lookup = db.get(m.PartyLookup, f.ref_no)
+            lookup = db.scalar(select(m.PartyLookup).where(func.lower(m.PartyLookup.ref_no) == str(f.ref_no).lower().strip()))
             if lookup:
                 party_id = lookup.party_id
                 party_name = lookup.party_name
@@ -959,6 +966,33 @@ def action_delete_formulation(db: Session, payload: dict, current_user=None):
     return {"success": True}
 
 
+def action_save_party_lookup(db: Session, payload: dict, current_user=None):
+    entries = payload.get("entries") or payload.get("partyLookup") or []
+    if not isinstance(entries, list):
+        entries = [payload.get("entry")] if payload.get("entry") else []
+    
+    count = 0
+    for e in entries:
+        ref_no = str(e.get("refNo") or e.get("ref_no") or e.get("REF NO") or "").strip()
+        if not ref_no:
+            continue
+        party_id = str(e.get("partyId") or e.get("party_id") or "").strip()
+        party_name = str(e.get("partyName") or e.get("party_name") or "").strip()
+        
+        lookup = db.scalar(select(m.PartyLookup).where(func.lower(m.PartyLookup.ref_no) == ref_no.lower()))
+        if not lookup:
+            lookup = m.PartyLookup(ref_no=ref_no, party_id=party_id, party_name=party_name)
+            db.add(lookup)
+        else:
+            if party_id:
+                lookup.party_id = party_id
+            if party_name:
+                lookup.party_name = party_name
+        count += 1
+    db.commit()
+    return {"success": True, "saved": count}
+
+
 ACTIONS = {
     "login": action_login,
     "loadAll": action_load_all,
@@ -985,6 +1019,7 @@ ACTIONS = {
     "deleteShift": action_delete_shift,
     "importFormulations": action_import_formulations,
     "adjustStock": action_adjust_stock,
+    "savePartyLookup": action_save_party_lookup,
 }
 
 
@@ -1009,6 +1044,7 @@ ACTION_PERMISSIONS = {
     "saveLabGloss": {"admin", "formulation", "labentry"},
     "saveComment": {"admin", "formulation"},
     "patchFormulationParties": {"admin", "formulation"},
+    "savePartyLookup": {"admin", "formulation"},
     "saveRawMaterial": {"admin", "inventory"},
     "deleteRawMaterial": {"admin"},
     "updateInventory": {"admin", "inventory"},

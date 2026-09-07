@@ -219,6 +219,35 @@ MAPPING = {
             "by": "by",
         },
     },
+    "PartyLookup": {
+        "model": m.PartyLookup,
+        "natural_key": "id",
+        "fields": {
+            "id": "id",
+            "refNo": "ref_no",
+            "partyId": "party_id",
+            "partyName": "party_name",
+        },
+    },
+    "Sheet2": {
+        "model": m.PartyLookup,
+        "natural_key": "id",
+        "fields": {
+            "refNo": "ref_no",
+            "partyId": "party_id",
+            "partyName": "party_name",
+        },
+    },
+    "live order sheet data": {
+        "model": m.PartyLookup,
+        "natural_key": "id",
+        "fields": {
+            "REF NO": "ref_no",
+            "refNo": "ref_no",
+            "partyId": "party_id",
+            "partyName": "party_name",
+        },
+    },
 }
 
 # Ordered list of tables to migrate (dependencies first)
@@ -227,6 +256,9 @@ MIGRATION_ORDER = [
     "Shifts",
     "Machines",
     "Settings",
+    "PartyLookup",
+    "Sheet2",
+    "live order sheet data",
     "RawMaterials",
     "Inventory",
     "Formulations",

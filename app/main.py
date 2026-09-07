@@ -20,6 +20,14 @@ with engine.begin() as conn:
     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_base_prices_formulation_id ON base_prices(formulation_id);"))
     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_base_prices_rm_id ON base_prices(rm_id);"))
     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_production_logs_machine_id ON production_logs(machine_id);"))
+    
+    # Auto-sync Postgres auto-increment sequences after manual imports
+    if "postgresql" in str(engine.url):
+        for t in ["formulations", "formulation_items", "raw_materials", "inventory", "stock_transactions", "audit_log", "formulation_comments", "base_prices", "machines", "shifts", "production_logs", "forecast_input_rows", "party_lookup", "users"]:
+            try:
+                conn.execute(text(f"SELECT setval(pg_get_serial_sequence('{t}', 'id'), COALESCE((SELECT MAX(id) FROM {t}), 1));"))
+            except Exception:
+                pass
 
 app = FastAPI(title="Surface Paints Backend")
 
@@ -98,4 +106,5 @@ if os.path.isdir(_admin_dir):
 
 _frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 if os.path.isdir(_frontend_dir):
+    app.mount("/frontend", StaticFiles(directory=_frontend_dir, html=True), name="frontend_alias")
     app.mount("/", StaticFiles(directory=_frontend_dir, html=True), name="frontend")
