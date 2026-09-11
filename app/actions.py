@@ -147,10 +147,7 @@ def get_current_user(db: Session, token: str):
 
 
 # Roles allowed to see raw material rates / batch costing figures.
-# Per the role-workflow spec: "Admin is the only role (along with
-# formulation, in some views) that can see raw material rates, batch
-# costs, and per-unit costing."
-COST_VISIBLE_ROLES = {"admin", "formulation"}
+COST_VISIBLE_ROLES = {"admin", "manager"}
 
 
 def strip_cost_fields(data: dict, role: str):
@@ -161,6 +158,17 @@ def strip_cost_fields(data: dict, role: str):
     for f in data["formulations"]:
         for it in f["items"]:
             it["rate"] = None
+    return data
+
+
+def strip_party_fields(data: dict, role: str):
+    # Only admin can view party name. Manager (Sushil Ji) and Formulation (Sudhir Ji) see partyId only.
+    if role == "admin":
+        return data
+    for f in data["formulations"]:
+        f["partyName"] = ""
+    for p in data["partyLookup"]:
+        p["partyName"] = ""
     return data
 
 
@@ -191,6 +199,7 @@ def action_load_all(db: Session, payload: dict, current_user=None):
     data["labourRate"] = float(settings.get("labourRate", 60))
     role = current_user.role if current_user else "view"
     data = strip_cost_fields(data, role)
+    data = strip_party_fields(data, role)
     return {"success": True, "data": data}
 
 
@@ -1037,30 +1046,30 @@ ACTIONS = {
 #
 ACTION_PERMISSIONS = {
     "loadAll": "*",
-    "saveFormulation": {"admin", "formulation"},
-    "deleteFormulation": {"admin", "formulation"},
-    "debitInventory": {"admin", "formulation"},
-    "updateBatchNumber": {"admin", "formulation", "batchedit"},
-    "saveLabGloss": {"admin", "formulation", "labentry"},
-    "saveComment": {"admin", "formulation"},
-    "patchFormulationParties": {"admin", "formulation"},
-    "savePartyLookup": {"admin", "formulation"},
-    "saveRawMaterial": {"admin", "inventory"},
+    "saveFormulation": {"admin", "manager", "formulation"},
+    "deleteFormulation": {"admin", "manager", "formulation"},
+    "debitInventory": {"admin", "manager", "formulation"},
+    "updateBatchNumber": {"admin", "manager", "formulation", "batchedit"},
+    "saveLabGloss": {"admin", "manager", "formulation", "labentry"},
+    "saveComment": {"admin", "manager", "formulation"},
+    "patchFormulationParties": {"admin", "manager", "formulation"},
+    "savePartyLookup": {"admin", "manager", "formulation"},
+    "saveRawMaterial": {"admin", "manager", "inventory"},
     "deleteRawMaterial": {"admin"},
-    "updateInventory": {"admin", "inventory"},
-    "addTransaction": {"admin", "inventory"},
+    "updateInventory": {"admin", "manager", "inventory"},
+    "addTransaction": {"admin", "manager", "inventory"},
     "addAudit": "*",
-    "saveSetting": {"admin", "formulation"},
+    "saveSetting": {"admin", "manager", "formulation"},
     "saveUser": {"admin"},
     "deleteUser": {"admin"},
-    "saveProductionLog": {"admin", "production"},
-    "deleteProductionLog": {"admin", "production"},
-    "saveMachine": {"admin"},
+    "saveProductionLog": {"admin", "manager", "production"},
+    "deleteProductionLog": {"admin", "manager", "production"},
+    "saveMachine": {"admin", "manager"},
     "deleteMachine": {"admin"},
-    "saveShift": {"admin", "production"},
+    "saveShift": {"admin", "manager", "production"},
     "deleteShift": {"admin"},
-    "importFormulations": {"admin", "formulation"},
-    "adjustStock": {"admin", "inventory"},
+    "importFormulations": {"admin", "manager", "formulation"},
+    "adjustStock": {"admin", "manager", "inventory"},
 }
 
 

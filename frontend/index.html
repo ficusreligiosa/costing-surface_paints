@@ -531,6 +531,12 @@
             color: #0d9488;
         }
 
+        .badge-manager {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
         .page {
             padding: 28px;
             flex: 1;
@@ -3320,6 +3326,8 @@
                 <h4>Demo Accounts</h4>
                 <button class="demo-login-btn" onclick="fillLogin('admin','admin123')">👑 Admin <span>— admin /
                         admin123</span></button>
+                <button class="demo-login-btn" onclick="fillLogin('sushil','sushil123')">👔 Sushil Ji (Manager)
+                    <span>— sushil / sushil123</span></button>
                 <button class="demo-login-btn" onclick="fillLogin('sudhir','sudhir123')">🔬 Sudhir Ji (Formulation)
                     <span>— sudhir / sudhir123</span></button>
                 <button class="demo-login-btn" onclick="fillLogin('vivek','vivek123')">🧪 Vivek Goswami (LAB Entry)
@@ -3402,6 +3410,7 @@
                 { id: 6, username: 'prodop', password: 'prod123', name: 'Production Operator', role: 'production' },
                 { id: 7, username: 'vivek', password: 'vivek123', name: 'Vivek Goswami', role: 'labentry' },
                 { id: 8, username: 'amar', password: 'amar123', name: 'Amar Goswami', role: 'batchedit' },
+                { id: 9, username: 'sushil', password: 'sushil123', name: 'Sushil Ji', role: 'manager' },
             ],
             rawMaterials: [
                 { id: 1, name: 'LDPE Granules', code: 'RM001', unit: 'KG', rate: 95, supplier: 'Reliance Polymers', updatedDate: '2025-01-15', minStock: 50, category: 'Binder' },
@@ -3748,6 +3757,12 @@
                 { section: 'Reports', items: [{ id: 'reports', label: 'Reports & Export' }, { id: 'analytics', label: '📊 Business Intelligence' }] },
                 { section: 'System', items: [{ id: 'users', label: 'User Management' }, { id: 'settings', label: 'Settings' }] },
             ],
+            manager: [
+                { section: 'Overview', items: [{ id: 'dashboard', label: 'Dashboard' }] },
+                { section: 'Production', items: [{ id: 'formulations', label: 'Formulations' }, { id: 'costing', label: 'Costing Engine' }, { id: 'costanalysis', label: 'Cost Analysis' }, { id: 'production', label: 'Production Entry' }, { id: 'prodreports', label: 'Prod. Reports' }, { id: 'machines', label: 'Machine Setup' }, { id: 'shiftmaster', label: 'Shift Master' }] },
+                { section: 'Materials', items: [{ id: 'rawmaterials', label: 'Raw Materials' }, { id: 'inventory', label: 'Inventory' }, { id: 'kitting', label: 'Full Kitting' }, { id: 'forecasting', label: 'RM Forecasting' }] },
+                { section: 'Reports', items: [{ id: 'reports', label: 'Reports & Export' }, { id: 'analytics', label: '📊 Business Intelligence' }] },
+            ],
             formulation: [
                 { section: 'Overview', items: [{ id: 'dashboard', label: 'Dashboard' }] },
                 { section: 'Production', items: [{ id: 'formulations', label: 'My Formulations' }] },
@@ -3785,12 +3800,13 @@
             ],
         };
 
-        const ROLE_LABELS = { admin: 'Administrator', formulation: 'Formulation User', view: 'View Only', report: 'Report User', inventory: 'Inventory User', production: 'Production Entry Operator', labentry: 'LAB Entry User', batchedit: 'Batch Code Editor' };
-        const BADGE_CLASSES = { admin: 'badge-admin', formulation: 'badge-form', view: 'badge-view', report: 'badge-report', inventory: 'badge-inventory', production: 'badge-production', labentry: 'badge-teal', batchedit: 'badge-report' };
+        const ROLE_LABELS = { admin: 'Administrator', manager: 'Manager (Sushil Ji)', formulation: 'Formulation (Sudhir Ji)', view: 'View Only', report: 'Report User', inventory: 'Inventory User', production: 'Production Entry Operator', labentry: 'LAB Entry User', batchedit: 'Batch Code Editor' };
+        const BADGE_CLASSES = { admin: 'badge-admin', manager: 'badge-manager', formulation: 'badge-form', view: 'badge-view', report: 'badge-report', inventory: 'badge-inventory', production: 'badge-production', labentry: 'badge-teal', batchedit: 'badge-report' };
 
         function can(perm) {
             const perms = {
-                admin: ['dashboard', 'formulations', 'costing', 'rawmaterials', 'inventory', 'reports', 'users', 'settings', 'viewPrice', 'editPrice', 'manageUsers', 'viewCost', 'kitting', 'costanalysis', 'addStock', 'subtractStock', 'production', 'prodreports', 'machines', 'manageMachines', 'shiftmaster', 'forecasting', 'analytics'],
+                admin: ['dashboard', 'formulations', 'costing', 'rawmaterials', 'inventory', 'reports', 'users', 'settings', 'viewPrice', 'editPrice', 'manageUsers', 'viewCost', 'viewPartyName', 'kitting', 'costanalysis', 'addStock', 'subtractStock', 'production', 'prodreports', 'machines', 'manageMachines', 'shiftmaster', 'forecasting', 'analytics'],
+                manager: ['dashboard', 'formulations', 'costing', 'rawmaterials', 'inventory', 'reports', 'viewPrice', 'viewCost', 'kitting', 'costanalysis', 'addStock', 'subtractStock', 'production', 'prodreports', 'machines', 'shiftmaster', 'forecasting', 'analytics'],
                 formulation: ['dashboard', 'formulations', 'inventory', 'forecasting'],
                 inventory: ['dashboard', 'inventory', 'reports', 'addStock', 'subtractStock', 'forecasting'],
                 view: ['dashboard', 'inventory'],
@@ -4267,9 +4283,9 @@
         <span>📅 ${f.mfgDate}</span><span>👤 ${f.byName || f.by || '—'}</span>${(currentUser.role !== 'labentry' && currentUser.role !== 'batchedit') ? `<span>⚗ ${(f.items || []).length} materials · ${calcTotalQtyDisplay(f)}</span>` : `<span>⚗ Total: ${calcTotalQtyDisplay(f)}</span>`}${f.remarks ? `<span>💬 ${f.remarks}</span>` : ''}<span style="background:${f.inventoryPartialDebit ? 'var(--orange-light)' : (f.inventoryDebited === false || f.inventoryDebited === "false") ? 'var(--accent-light)' : 'var(--green-light)'};color:${f.inventoryPartialDebit ? 'var(--orange)' : (f.inventoryDebited === false || f.inventoryDebited === "false") ? 'var(--accent2)' : 'var(--green)'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${f.inventoryPartialDebit ? '⚠️ Partial Debit' : (f.inventoryDebited === false || f.inventoryDebited === "false") ? '🔒 No Debit' : '📦 Debited'}</span>
       </div>
       ${(f.partyName || f.partyId || f.refNo) ? `<div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        ${(f.partyName || f.partyId) ? `<div onclick="quickFilterByParty('${_esc(can('manageUsers') ? (f.partyName || f.partyId) : f.partyId)}')" title="Click to filter by this party" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);border-radius:8px;padding:6px 14px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 4px rgba(29,78,216,0.15);cursor:pointer;user-select:none;transition:transform .1s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-          <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:1px;">${can('manageUsers') ? 'PARTY NAME' : 'PARTY ID'}</span>
-          <span style="font-size:14px;font-weight:800;color:#fff;letter-spacing:0.3px;">${can('manageUsers') ? (f.partyName || f.partyId) : f.partyId}</span>
+        ${(f.partyName || f.partyId) ? `<div onclick="quickFilterByParty('${_esc(can('viewPartyName') ? (f.partyName || f.partyId) : (f.partyId || '—'))}')" title="Click to filter by this party" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);border-radius:8px;padding:6px 14px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 4px rgba(29,78,216,0.15);cursor:pointer;user-select:none;transition:transform .1s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+          <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:1px;">${can('viewPartyName') ? 'PARTY NAME' : 'PARTY ID'}</span>
+          <span style="font-size:14px;font-weight:800;color:#fff;letter-spacing:0.3px;">${can('viewPartyName') ? (f.partyName || f.partyId) + (f.partyName && f.partyId && f.partyName !== f.partyId ? ` <span style="font-size:11px;opacity:0.85;font-weight:600;">(ID: ${f.partyId})</span>` : '') : (f.partyId || '—')}</span>
         </div>`: ''}
         ${f.refNo ? `<div onclick="quickFilterByRef('${_esc(f.refNo)}')" title="Click to filter by this Ref No" style="background:#f8faff;border:1.5px solid #bfdbfe;border-radius:8px;padding:6px 14px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;transition:transform .1s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
           <span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">REF NO</span>
@@ -4279,7 +4295,7 @@
       
       <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         ${f.refNo ? `<span onclick="quickFilterByRef('${_esc(f.refNo)}')" title="Click to filter by Ref No" style="background:#eff6ff;color:#1e40af;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;border:1px solid #bfdbfe;cursor:pointer;">📋 Ref: ${f.refNo}</span>` : ''}
-        ${(f.partyId || f.partyName) ? `<span onclick="quickFilterByParty('${_esc(can('manageUsers') ? (f.partyName || f.partyId) : f.partyId)}')" title="Click to filter by party" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid #bfdbfe;letter-spacing:0.2px;cursor:pointer;">🏢 ${can('manageUsers') ? (f.partyName || f.partyId) : f.partyId}</span>` : ''}
+        ${(f.partyId || f.partyName) ? `<span onclick="quickFilterByParty('${_esc(can('viewPartyName') ? (f.partyName || f.partyId) : (f.partyId || '—'))}')" title="Click to filter by party" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid #bfdbfe;letter-spacing:0.2px;cursor:pointer;">🏢 ${can('viewPartyName') ? (f.partyName || f.partyId) : ('Party ID: ' + (f.partyId || '—'))}</span>` : ''}
         ${f.labValues ? `<span style="background:var(--purple-light);color:var(--purple);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">🧪 L:${f.labValues.L || '—'} a:${f.labValues.A || '—'} b:${f.labValues.B || '—'}</span>` : ''}
         ${f.glossValue != null ? `<span style="background:#fdf4ff;color:#9333ea;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">✨ Gloss: ${f.glossValue} GU</span>` : ''}
         ${(() => { const cc = DB.formulationComments.filter(c => c.formulationId === f.id).length; return cc > 0 ? `<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">💬 ${cc} comment${cc > 1 ? 's' : ''}</span>` : ''; })()}
@@ -5325,6 +5341,22 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
         function openEditFormModal(id) {
             const f = DB.formulations.find(x => x.id === id);
             if (!f) { toast('Formulation not found', 'error'); return; }
+            const uniqueParties = [];
+            const seenParties = new Set();
+            (DB.partyLookup || []).forEach(p => {
+                const name = (p.partyName || '').trim();
+                if (name && !seenParties.has(name.toLowerCase())) {
+                    seenParties.add(name.toLowerCase());
+                    uniqueParties.push({ partyName: name, partyId: p.partyId, refNo: p.refNo });
+                }
+            });
+            (DB.formulations || []).forEach(x => {
+                const name = (x.partyName || '').trim();
+                if (name && !seenParties.has(name.toLowerCase())) {
+                    seenParties.add(name.toLowerCase());
+                    uniqueParties.push({ partyName: name, partyId: x.partyId || '', refNo: x.refNo || '' });
+                }
+            });
             const modal = `<div class="modal-overlay" id="edit-form-modal" onclick="if(event.target.id==='edit-form-modal')closeModal('edit-form-modal')">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -5346,6 +5378,25 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
       <div class="form-row">
         <div class="form-group"><label>Batch Number</label><input class="form-control" id="ef-batch" value="${f.batchNo || ''}" placeholder="Batch No"></div>
         <div class="form-group"><label>Remarks</label><input class="form-control" id="ef-remarks" value="${f.remarks || ''}" placeholder="Remarks"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="position:relative;">
+          <label>${can('viewPartyName') ? 'Party Name' : 'Party ID'} <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional)</span></label>
+          <input class="form-control" id="ef-partyname" list="ef-partylist" value="${can('viewPartyName') ? (f.partyName || '') : (f.partyId || '')}" placeholder="${can('viewPartyName') ? 'Type or select Party...' : 'Type or select Party ID...'}" oninput="_onEfPartyNameChange()" autocomplete="off">
+          <datalist id="ef-partylist">
+            ${uniqueParties.map(p => `<option value="${_esc(can('viewPartyName') ? p.partyName : (p.partyId || p.partyName))}">${can('viewPartyName') && p.partyId ? 'ID: ' + _esc(p.partyId) : ''}${p.refNo ? ' (' + _esc(p.refNo) + ')' : ''}</option>`).join('')}
+          </datalist>
+          <input type="hidden" id="ef-partyid" value="${f.partyId || ''}">
+          <div class="form-hint" id="ef-partyname-hint">${can('viewPartyName') ? 'Select a customer or enter directly' : 'Select Party ID or enter directly'}</div>
+        </div>
+        <div class="form-group" style="position:relative;">
+          <label>Ref No <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional)</span></label>
+          <input class="form-control" id="ef-refno" list="ef-refnolist" value="${f.refNo || ''}" placeholder="e.g. SO-2025-042" oninput="_onEfRefNoChange()" autocomplete="off">
+          <datalist id="ef-refnolist">
+            ${(DB.partyLookup || []).filter(p => p.refNo).map(p => `<option value="${_esc(p.refNo)}">${_esc(can('viewPartyName') ? (p.partyName || p.partyId || '') : (p.partyId || ''))}</option>`).join('')}
+          </datalist>
+          <div class="form-hint" id="ef-refno-hint">Auto-fills when Party is selected</div>
+        </div>
       </div>
       <hr style="border-color:var(--border);margin:16px 0;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -5542,12 +5593,18 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
             const originalItems = [...f.items];
             const originalName = f.productName, originalCode = f.productCode;
             const originalBatch = f.batchNo, originalRemarks = f.remarks;
-            const originalPartyId = f.partyId, originalPartyName = f.partyName;
+            const originalPartyId = f.partyId, originalPartyName = f.partyName, originalRefNo = f.refNo;
+            const partyName = document.getElementById('ef-partyname')?.value.trim() || '';
+            const partyId = document.getElementById('ef-partyid')?.value.trim() || '';
+            const refNo = document.getElementById('ef-refno')?.value.trim() || '';
             f.productName = pname;
             f.productCode = pcode;
             f.batchNo = batch;
             f.remarks = remarks;
             f.items = items;
+            f.refNo = refNo;
+            f.partyName = partyName;
+            f.partyId = partyId;
             // v3.9-FIX: Re-run Sheet2 party lookup for edits too — covers recipes that
             // had refNo but blank partyId/partyName when first saved (pre-v3.8 entries).
             if (f.refNo && DB.partyLookup && DB.partyLookup.length && (!f.partyId && !f.partyName)) {
@@ -5564,7 +5621,7 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
                     // v3.5 FIX-RATE: roll back in-memory on failure so local state stays consistent
                     f.productName = originalName; f.productCode = originalCode;
                     f.batchNo = originalBatch; f.remarks = originalRemarks; f.items = originalItems;
-                    f.partyId = originalPartyId; f.partyName = originalPartyName;
+                    f.partyId = originalPartyId; f.partyName = originalPartyName; f.refNo = originalRefNo;
                     toast('❌ Edit save failed — ' + err.message, 'error');
                     if (editSaveBtn) { editSaveBtn.disabled = false; editSaveBtn.innerHTML = 'Save Changes'; }
                 })
@@ -5577,6 +5634,22 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
             const draft = (!forceEmpty && !template && _formDraft) ? _formDraft : null;
             const ts = nowDateTime();
             const debit = DB.settings.debitInventoryOnSave;
+            const uniqueParties = [];
+            const seenParties = new Set();
+            (DB.partyLookup || []).forEach(p => {
+                const name = (p.partyName || '').trim();
+                if (name && !seenParties.has(name.toLowerCase())) {
+                    seenParties.add(name.toLowerCase());
+                    uniqueParties.push({ partyName: name, partyId: p.partyId, refNo: p.refNo });
+                }
+            });
+            (DB.formulations || []).forEach(f => {
+                const name = (f.partyName || '').trim();
+                if (name && !seenParties.has(name.toLowerCase())) {
+                    seenParties.add(name.toLowerCase());
+                    uniqueParties.push({ partyName: name, partyId: f.partyId || '', refNo: f.refNo || '' });
+                }
+            });
             const modal = `<div class="modal-overlay" id="form-modal" onclick="if(event.target.id==='form-modal'){_saveFormDraft();closeModal('form-modal')}">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -5648,10 +5721,22 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
       </div>
       <div class="form-group"><label>Remarks</label><textarea class="form-control" id="fm-remarks" oninput="_saveFormDraft()">${draft ? draft.remarks : template ? template.remarks || '' : ''}</textarea></div>
       <div class="form-row">
-        <div class="form-group">
+        <div class="form-group" style="position:relative;">
+          <label>${can('viewPartyName') ? 'Party Name' : 'Party ID'} <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional — select or type party)</span></label>
+          <input class="form-control" id="fm-partyname" list="fm-partylist" value="${can('viewPartyName') ? (draft ? (draft.partyName || '') : template ? (template.partyName || '') : '') : (draft ? (draft.partyId || '') : template ? (template.partyId || '') : '')}" placeholder="${can('viewPartyName') ? 'Type or select Party...' : 'Type or select Party ID...'}" oninput="_onPartyNameChange()" autocomplete="off">
+          <datalist id="fm-partylist">
+            ${uniqueParties.map(p => `<option value="${_esc(can('viewPartyName') ? p.partyName : (p.partyId || p.partyName))}">${can('viewPartyName') && p.partyId ? 'ID: ' + _esc(p.partyId) : ''}${p.refNo ? ' (' + _esc(p.refNo) + ')' : ''}</option>`).join('')}
+          </datalist>
+          <input type="hidden" id="fm-partyid" value="${draft ? (draft.partyId || '') : template ? (template.partyId || '') : ''}">
+          <div class="form-hint" id="fm-partyname-hint">${can('viewPartyName') ? 'Select a customer or type directly — linked with Ref No' : 'Select Party ID — linked with Ref No'}</div>
+        </div>
+        <div class="form-group" style="position:relative;">
           <label>Ref No <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional)</span></label>
-          <input class="form-control" id="fm-refno" value="${draft ? draft.refNo : template ? template.refNo || '' : ''}" placeholder="e.g. SO-2025-042" oninput="_saveFormDraft()">
-          <div class="form-hint" id="fm-refno-hint">Enter order/customer ref no — Party ID &amp; Party Name will auto-fill from database lookup when saving</div>
+          <input class="form-control" id="fm-refno" list="fm-refnolist" value="${draft ? draft.refNo : template ? template.refNo || '' : ''}" placeholder="e.g. SO-2025-042" oninput="_onRefNoChange()" autocomplete="off">
+          <datalist id="fm-refnolist">
+            ${(DB.partyLookup || []).filter(p => p.refNo).map(p => `<option value="${_esc(p.refNo)}">${_esc(can('viewPartyName') ? (p.partyName || p.partyId || '') : (p.partyId || ''))}</option>`).join('')}
+          </datalist>
+          <div class="form-hint" id="fm-refno-hint">Auto-fills when Party is selected, or enter order ref no</div>
         </div>
       </div>
       <hr style="border-color:var(--border);margin:16px 0;">
@@ -6304,6 +6389,8 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
             const batch = document.getElementById('fm-batch')?.value || '';
             const remarks = document.getElementById('fm-remarks')?.value || '';
             const refNo = document.getElementById('fm-refno')?.value || '';
+            const partyName = document.getElementById('fm-partyname')?.value || '';
+            const partyId = document.getElementById('fm-partyid')?.value || '';
             const productType = document.getElementById('fm-ptype')?.value || '';
             const productFinish = document.getElementById('fm-pfinish')?.value || '';
             const items = [];
@@ -6318,20 +6405,107 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
                 const label = labelEl ? labelEl.value : '';
                 items.push({ rmId, qty, unit, rate, label });
             });
-            _formDraft = { pname, pcode, batch, remarks, refNo, productType, productFinish, items };
+            _formDraft = { pname, pcode, batch, remarks, refNo, partyName, partyId, productType, productFinish, items };
+        }
 
+        function _onPartyNameChange() {
+            const pNameInput = document.getElementById('fm-partyname');
+            const pIdInput = document.getElementById('fm-partyid');
+            const refNoInput = document.getElementById('fm-refno');
+            const partyHint = document.getElementById('fm-partyname-hint');
             const refHint = document.getElementById('fm-refno-hint');
-            if (refHint) {
-                const rVal = refNo.trim().toLowerCase();
-                if (!rVal) {
-                    refHint.innerHTML = 'Enter order/customer ref no — Party ID &amp; Party Name will auto-fill from database lookup when saving';
-                } else if (DB.partyLookup && DB.partyLookup.length) {
-                    const match = DB.partyLookup.find(p => String(p.refNo || '').trim().toLowerCase() === rVal);
-                    if (match) {
-                        refHint.innerHTML = `<span style="color:#1d4ed8;font-weight:700;">✓ Matched Party: ${match.partyName || match.partyId} (ID: ${match.partyId || '—'})</span>`;
-                    } else {
-                        refHint.innerHTML = `<span style="color:var(--text3);">No party match found for "${_esc(refNo)}"</span>`;
+            if (!pNameInput) return;
+
+            const val = (pNameInput.value || '').trim();
+            const valLower = val.toLowerCase();
+
+            if (val && DB.partyLookup && DB.partyLookup.length) {
+                const match = DB.partyLookup.find(p => String(p.partyName || '').trim().toLowerCase() === valLower);
+                if (match) {
+                    if (pIdInput) pIdInput.value = match.partyId || '';
+                    if (refNoInput && match.refNo && !refNoInput.value.trim()) {
+                        refNoInput.value = match.refNo;
                     }
+                    if (partyHint) partyHint.innerHTML = `<span style="color:#1d4ed8;font-weight:700;">✓ Matched Party ID: ${_esc(match.partyId || '—')}</span>`;
+                    if (refHint && match.refNo) refHint.innerHTML = `<span style="color:#15803d;font-weight:600;">✓ Auto-filled Ref No: ${_esc(match.refNo)}</span>`;
+                } else {
+                    if (partyHint) partyHint.innerHTML = `<span style="color:var(--text2);font-weight:600;">Custom Party: "${_esc(val)}"</span>`;
+                }
+            } else if (!val) {
+                if (partyHint) partyHint.innerHTML = 'Select a customer or type directly — linked with Ref No';
+                if (pIdInput) pIdInput.value = '';
+            }
+            _saveFormDraft();
+        }
+
+        function _onRefNoChange() {
+            const refNoInput = document.getElementById('fm-refno');
+            const pNameInput = document.getElementById('fm-partyname');
+            const pIdInput = document.getElementById('fm-partyid');
+            const refHint = document.getElementById('fm-refno-hint');
+            const partyHint = document.getElementById('fm-partyname-hint');
+            if (!refNoInput) return;
+
+            const val = (refNoInput.value || '').trim();
+            const valLower = val.toLowerCase();
+
+            if (val && DB.partyLookup && DB.partyLookup.length) {
+                const match = DB.partyLookup.find(p => String(p.refNo || '').trim().toLowerCase() === valLower);
+                if (match) {
+                    if (pNameInput && match.partyName && can('viewPartyName') && !pNameInput.value.trim()) {
+                        pNameInput.value = match.partyName;
+                    } else if (pNameInput && match.partyId && !can('viewPartyName') && !pNameInput.value.trim()) {
+                        pNameInput.value = match.partyId;
+                    }
+                    if (pIdInput && match.partyId) {
+                        pIdInput.value = match.partyId;
+                    }
+                    if (refHint) refHint.innerHTML = can('viewPartyName') ? `<span style="color:#1d4ed8;font-weight:700;">✓ Matched Party: ${_esc(match.partyName || match.partyId)} (ID: ${_esc(match.partyId || '—')})</span>` : `<span style="color:#1d4ed8;font-weight:700;">✓ Matched Party ID: ${_esc(match.partyId || '—')}</span>`;
+                    if (partyHint && (match.partyName || match.partyId)) partyHint.innerHTML = `<span style="color:#15803d;font-weight:600;">✓ Auto-filled from Ref No</span>`;
+                } else {
+                    if (refHint) refHint.innerHTML = `<span style="color:var(--text3);">No party lookup match for "${_esc(val)}"</span>`;
+                }
+            } else if (!val) {
+                if (refHint) refHint.innerHTML = 'Auto-fills when Party is selected, or enter order ref no';
+            }
+            _saveFormDraft();
+        }
+
+        function _onEfPartyNameChange() {
+            const pNameInput = document.getElementById('ef-partyname');
+            const pIdInput = document.getElementById('ef-partyid');
+            const refNoInput = document.getElementById('ef-refno');
+            const partyHint = document.getElementById('ef-partyname-hint');
+            const refHint = document.getElementById('ef-refno-hint');
+            if (!pNameInput) return;
+
+            const val = (pNameInput.value || '').trim().toLowerCase();
+            if (val && DB.partyLookup && DB.partyLookup.length) {
+                const match = DB.partyLookup.find(p => String(p.partyName || '').trim().toLowerCase() === val);
+                if (match) {
+                    if (pIdInput) pIdInput.value = match.partyId || '';
+                    if (refNoInput && match.refNo && !refNoInput.value.trim()) refNoInput.value = match.refNo;
+                    if (partyHint) partyHint.innerHTML = `<span style="color:#1d4ed8;font-weight:700;">✓ Matched Party ID: ${_esc(match.partyId || '—')}</span>`;
+                    if (refHint && match.refNo) refHint.innerHTML = `<span style="color:#15803d;font-weight:600;">✓ Auto-filled Ref No: ${_esc(match.refNo)}</span>`;
+                }
+            }
+        }
+
+        function _onEfRefNoChange() {
+            const refNoInput = document.getElementById('ef-refno');
+            const pNameInput = document.getElementById('ef-partyname');
+            const pIdInput = document.getElementById('ef-partyid');
+            const refHint = document.getElementById('ef-refno-hint');
+            if (!refNoInput) return;
+
+            const val = (refNoInput.value || '').trim().toLowerCase();
+            if (val && DB.partyLookup && DB.partyLookup.length) {
+                const match = DB.partyLookup.find(p => String(p.refNo || '').trim().toLowerCase() === val);
+                if (match) {
+                    if (pNameInput && match.partyName && can('viewPartyName') && !pNameInput.value.trim()) pNameInput.value = match.partyName;
+                    else if (pNameInput && match.partyId && !can('viewPartyName') && !pNameInput.value.trim()) pNameInput.value = match.partyId;
+                    if (pIdInput && match.partyId) pIdInput.value = match.partyId;
+                    if (refHint) refHint.innerHTML = can('viewPartyName') ? `<span style="color:#1d4ed8;font-weight:700;">✓ Matched Party: ${_esc(match.partyName || match.partyId)} (ID: ${_esc(match.partyId || '—')})</span>` : `<span style="color:#1d4ed8;font-weight:700;">✓ Matched Party ID: ${_esc(match.partyId || '—')}</span>`;
                 }
             }
         }
@@ -6536,13 +6710,24 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
             const mfgDateTime = nowDateTime();
             const remarks = document.getElementById('fm-remarks').value.trim();
             const refNo = document.getElementById('fm-refno')?.value.trim() || '';
+            const enteredPartyName = document.getElementById('fm-partyname')?.value.trim() || '';
+            const enteredPartyId = document.getElementById('fm-partyid')?.value.trim() || '';
             const productType = document.getElementById('fm-ptype')?.value || '';
             const productFinish = document.getElementById('fm-pfinish')?.value || '';
-            // v3.8: Auto-lookup partyId + partyName from Sheet2 using refNo
-            let resolvedPartyId = '', resolvedPartyName = '';
+            // v3.8: Auto-lookup partyId + partyName from Sheet2 using refNo or party name
+            let resolvedPartyId = enteredPartyId, resolvedPartyName = enteredPartyName;
             if (refNo && DB.partyLookup && DB.partyLookup.length) {
                 const _pm = DB.partyLookup.find(p => String(p.refNo || '').trim().toLowerCase() === refNo.trim().toLowerCase());
-                if (_pm) { resolvedPartyId = String(_pm.partyId || '').trim(); resolvedPartyName = String(_pm.partyName || '').trim(); }
+                if (_pm) {
+                    resolvedPartyId = resolvedPartyId || String(_pm.partyId || '').trim();
+                    resolvedPartyName = resolvedPartyName || String(_pm.partyName || '').trim();
+                }
+            }
+            if (resolvedPartyName && !resolvedPartyId && DB.partyLookup && DB.partyLookup.length) {
+                const _pm = DB.partyLookup.find(p => String(p.partyName || '').trim().toLowerCase() === resolvedPartyName.trim().toLowerCase());
+                if (_pm) {
+                    resolvedPartyId = String(_pm.partyId || '').trim();
+                }
             }
             const lots = 1;  // lots removed from new formulation form; always saved as 1
             // Formulation save NEVER debits inventory anymore.
@@ -8746,6 +8931,7 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
       <div class="form-group"><label>Role</label>
         <select class="form-control" id="usr-role">
           <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>👑 Administrator</option>
+          <option value="manager" ${u.role === 'manager' ? 'selected' : ''}>👔 Manager (Sushil Ji)</option>
           <option value="formulation" ${u.role === 'formulation' ? 'selected' : ''}>🔬 Formulation User</option>
           <option value="inventory" ${u.role === 'inventory' ? 'selected' : ''}>📦 Inventory User</option>
           <option value="view" ${u.role === 'view' ? 'selected' : ''}>👁 View Only</option>
@@ -9141,7 +9327,7 @@ td{padding:6px 9px;color:#1a1a1a;vertical-align:middle;}
     <div class="ic"><div class="il">Manufacturing Date &amp; Time</div><div class="iv">${f.mfgDate}</div></div>
     <div class="ic"><div class="il">Lots / Multiplier</div><div class="iv">${f.lots || 1}</div></div>
     <div class="ic"><div class="il">Prepared By</div><div class="iv">${f.byName}</div></div>
-    ${(f.refNo || f.partyName || f.partyId) ? `<div class="ic" style="grid-column:1/-1;background:linear-gradient(135deg,#eff6ff,#e0ecff);border-top:2px solid #2563eb;"><div style="display:flex;gap:32px;align-items:center;">${f.refNo ? `<div><div class="il">Ref No</div><div class="iv" style="font-size:13pt;font-weight:800;color:#1d4ed8;">${f.refNo}</div></div>` : ''} ${(f.partyName || f.partyId) ? `<div><div class="il">Party Name</div><div class="iv" style="font-size:13pt;font-weight:800;color:#1d4ed8;">${f.partyName || f.partyId}</div></div>` : ''}</div></div>` : ''}
+    ${(f.refNo || f.partyName || f.partyId) ? `<div class="ic" style="grid-column:1/-1;background:linear-gradient(135deg,#eff6ff,#e0ecff);border-top:2px solid #2563eb;"><div style="display:flex;gap:32px;align-items:center;">${f.refNo ? `<div><div class="il">Ref No</div><div class="iv" style="font-size:13pt;font-weight:800;color:#1d4ed8;">${f.refNo}</div></div>` : ''} ${(f.partyName || f.partyId) ? `<div><div class="il">${can('viewPartyName') ? 'Party Name' : 'Party ID'}</div><div class="iv" style="font-size:13pt;font-weight:800;color:#1d4ed8;">${can('viewPartyName') ? (f.partyName || f.partyId) : (f.partyId || '—')}</div></div>` : ''}</div></div>` : ''}
   </div>
 
   <table>
